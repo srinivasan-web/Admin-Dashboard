@@ -1,0 +1,136 @@
+/* ==========================================================================
+   Durafit 91 — Banner Management Scoped Styles
+   Clean, modern, pure Tailwind CSS companion resets
+   ========================================================================== */
+
+/* Scoped tab resets so global button styling doesn't interfere */
+.banner-tab-btn,
+button[role="tab"].banner-tab-btn {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 10px 16px !important;
+  box-shadow: none !important;
+  transform: none !important;
+  font-weight: 500 !important;
+}
+
+.banner-tab-btn:hover:not(:disabled) {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Scoped filter select override to stop full-width stretching from styles.css */
+.banner-filter-select {
+  width: auto !important;
+  min-width: 135px !important;
+  max-width: 195px !important;
+  height: 40px !important;
+}
+
+@media (max-width: 768px) {
+  .banner-filter-select {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* Row action buttons: crisp 32x32px single horizontal line */
+.banner-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  padding: 0 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  color: #4b5563 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+  transition: all 150ms ease !important;
+}
+
+.banner-action-btn:hover:not(:disabled) {
+  background: #fff7ed !important;
+  color: #ea580c !important;
+  border-color: #fdba74 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transform: translateY(-1px) !important;
+}
+
+.banner-action-btn.danger:hover:not(:disabled) {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+.banner-action-btn .power-on {
+  color: #16a34a !important;
+}
+
+.banner-action-btn .power-off {
+  color: #94a3b8 !important;
+}
+
+.banner-action-btn:hover:not(:disabled) .power-on {
+  color: #15803d !important;
+}
+
+.banner-action-btn:hover:not(:disabled) .power-off {
+  color: #475569 !important;
+}
+
+/* Dropzone drag and active states */
+.banner-dropzone {
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.banner-dropzone.is-dragging {
+  border-color: #ea580c !important;
+  background-color: #fff7ed !important;
+}
+
+/* Media Library Item Grid Button */
+.banner-lib-item {
+  position: relative;
+  height: 76px !important;
+  min-height: 76px !important;
+  max-height: 76px !important;
+  padding: 3px !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
+  transform: none !important;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+
+.banner-lib-item:hover {
+  border-color: #fdba74 !important;
+  background: #ffffff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.banner-lib-item.selected {
+  border-color: #ea580c !important;
+  background: #ffffff !important;
+}
+
+.banner-lib-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

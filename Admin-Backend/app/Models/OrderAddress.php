@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
-#[Fillable(['order_id', 'address_type', 'name', 'phone', 'email', 'address', 'state', 'city', 'postal_code'])]
+#[Fillable(['order_id', 'address_type', 'name', 'phone', 'email', 'address', 'state', 'city', 'postal_code', 'latitude', 'longitude'])]
 class OrderAddress extends Model
 {
     use HasUuids;
@@ -23,6 +23,11 @@ class OrderAddress extends Model
      * @var bool
      */
     public $timestamps = false;
+
+    protected function casts(): array
+    {
+        return ['latitude' => 'decimal:7', 'longitude' => 'decimal:7'];
+    }
 
     protected static function booted(): void
     {

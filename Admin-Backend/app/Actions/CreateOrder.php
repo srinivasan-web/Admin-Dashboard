@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Domain\Orders\OrderMoney;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderAddress;
@@ -31,11 +32,7 @@ class CreateOrder
             throw new InvalidArgumentException('An order requires at least one item.');
         }
 
-        $discount = $this->toMinorUnits($discountAmount, 'Discount amount');
-
-        if ($discount < 0) {
-            throw new InvalidArgumentException('Discount amount cannot be negative.');
-        }
+        $discount = OrderMoney::toMinorUnits($discountAmount, 'Discount amount');
 
         return DB::transaction(function () use ($customer, $orderNumber, $items, $billingAddress, $shippingAddress, $warehouse, $discount): Order {
             if (! $customer->exists || ($warehouse !== null && ! $warehouse->exists)) {
@@ -47,7 +44,13 @@ class CreateOrder
             }
 
             $preparedItems = $this->prepareItems($items);
-            $subtotal = array_sum(array_column($preparedItems, 'line_total'));
+            $subtotal = 0;
+            foreach ($preparedItems as $item) {
+                if ($item['line_total'] > OrderMoney::MAX_MINOR_UNITS - $subtotal) {
+                    throw new InvalidArgumentException('Order subtotal exceeds the supported money range.');
+                }
+                $subtotal += $item['line_total'];
+            }
 
             if ($discount > $subtotal) {
                 throw new InvalidArgumentException('Discount amount cannot exceed the order subtotal.');
@@ -57,12 +60,13 @@ class CreateOrder
                 'order_number' => $orderNumber,
                 'customer_id' => $customer->getKey(),
                 'warehouse_id' => $warehouse?->getKey(),
+                'warehouse_allocated_at' => $warehouse ? now() : null,
                 'status' => self::InitialOrderStatus,
                 'payment_status' => self::InitialPaymentStatus,
                 'fulfillment_status' => self::InitialFulfillmentStatus,
-                'subtotal_amount' => $this->fromMinorUnits($subtotal),
-                'discount_amount' => $this->fromMinorUnits($discount),
-                'total_amount' => $this->fromMinorUnits($subtotal - $discount),
+                'subtotal_amount' => OrderMoney::fromMinorUnits($subtotal),
+                'discount_amount' => OrderMoney::fromMinorUnits($discount),
+                'total_amount' => OrderMoney::fromMinorUnits($subtotal - $discount),
             ]);
 
             foreach ($preparedItems as $item) {
@@ -71,8 +75,8 @@ class CreateOrder
                     'product_name' => $item['product']->name,
                     'product_sku' => $item['product']->sku,
                     'quantity' => $item['quantity'],
-                    'unit_price' => $this->fromMinorUnits($item['unit_price']),
-                    'line_total' => $this->fromMinorUnits($item['line_total']),
+                    'unit_price' => OrderMoney::fromMinorUnits($item['unit_price']),
+                    'line_total' => OrderMoney::fromMinorUnits($item['line_total']),
                 ]);
             }
 
@@ -80,7 +84,7 @@ class CreateOrder
             $order->addresses()->create($this->addressAttributes($shippingAddress, OrderAddress::Shipping));
             $order->statusHistories()->create(['from_status' => null, 'to_status' => self::InitialOrderStatus]);
 
-            return $order->load(['items', 'billingAddress', 'shippingAddress', 'statusHistories']);
+            return $order->load(['items', 'billingAddress', 'shippingAddress', 'statusHistories', 'stockReservations']);
         });
     }
 
@@ -101,7 +105,7 @@ class CreateOrder
                 throw new InvalidArgumentException('Order items must reference persisted products.');
             }
 
-            if (! is_int($quantity) || $quantity < 1) {
+            if (! is_int($quantity) || $quantity < 1 || $quantity > 4294967295) {
                 throw new InvalidArgumentException('Order item quantities must be positive integers.');
             }
 
@@ -109,17 +113,11 @@ class CreateOrder
                 throw new InvalidArgumentException('Order item prices must be decimal strings.');
             }
 
-            $minorUnits = $this->toMinorUnits($unitPrice, 'Order item price');
-
-            if ($minorUnits < 0) {
-                throw new InvalidArgumentException('Order item prices cannot be negative.');
-            }
-
-            $lineTotal = $minorUnits * $quantity;
-
-            if ($lineTotal > 999999999999) {
+            $minorUnits = OrderMoney::toMinorUnits($unitPrice, 'Order item price');
+            if ($minorUnits > 0 && $quantity > intdiv(OrderMoney::MAX_MINOR_UNITS, $minorUnits)) {
                 throw new InvalidArgumentException('Order item total exceeds the supported money range.');
             }
+            $lineTotal = $minorUnits * $quantity;
 
             $preparedItems[] = compact('product', 'quantity', 'lineTotal') + ['unit_price' => $minorUnits, 'line_total' => $lineTotal];
         }
@@ -130,6 +128,12 @@ class CreateOrder
     /** @param array<string, string|null> $address */
     private function addressAttributes(array $address, string $addressType): array
     {
+        $latitude = $this->coordinate($address['latitude'] ?? null, -90, 90);
+        $longitude = $this->coordinate($address['longitude'] ?? null, -180, 180);
+        if (($latitude === null) !== ($longitude === null)) {
+            throw new InvalidArgumentException('Both address coordinates are required together.');
+        }
+
         return [
             'address_type' => $addressType,
             'name' => $this->requiredString($address['name'] ?? null, 'Address name'),
@@ -139,7 +143,21 @@ class CreateOrder
             'state' => $this->nullableString($address['state'] ?? null),
             'city' => $this->nullableString($address['city'] ?? null),
             'postal_code' => $this->nullableString($address['postal_code'] ?? null),
+            'latitude' => $latitude,
+            'longitude' => $longitude,
         ];
+    }
+
+    private function coordinate(mixed $value, int $minimum, int $maximum): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (! is_numeric($value) || ! is_finite((float) $value) || (float) $value < $minimum || (float) $value > $maximum) {
+            throw new InvalidArgumentException('Address coordinates are invalid.');
+        }
+
+        return (float) $value;
     }
 
     private function requiredString(mixed $value, string $field): string
@@ -154,27 +172,5 @@ class CreateOrder
     private function nullableString(mixed $value): ?string
     {
         return $value === null ? null : $this->requiredString($value, 'Address field');
-    }
-
-    private function toMinorUnits(string $amount, string $field): int
-    {
-        if (! preg_match('/^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,2})?$/', $amount)) {
-            throw new InvalidArgumentException($field.' must have at most two decimal places.');
-        }
-
-        $negative = str_starts_with($amount, '-');
-        [$whole, $fraction] = array_pad(explode('.', ltrim($amount, '-'), 2), 2, '0');
-        $minorUnits = ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
-
-        if ($minorUnits > 999999999999) {
-            throw new InvalidArgumentException($field.' exceeds the supported money range.');
-        }
-
-        return $negative ? -$minorUnits : $minorUnits;
-    }
-
-    private function fromMinorUnits(int $minorUnits): string
-    {
-        return intdiv($minorUnits, 100).'.'.str_pad((string) ($minorUnits % 100), 2, '0', STR_PAD_LEFT);
     }
 }

@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table): void {
+            $table->engine = 'InnoDB';
             $table->uuid('id')->primary();
             $table->foreignUuid('brand_id')->constrained()->restrictOnDelete();
             $table->foreignUuid('category_id')->constrained()->restrictOnDelete();

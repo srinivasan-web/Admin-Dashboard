@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\OrderAddress;
 use App\Models\Product;
 use App\Models\Warehouse;
+use App\Models\WarehouseStock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -21,6 +22,8 @@ class CreateOrderTest extends TestCase
         $warehouse = Warehouse::factory()->create();
         $firstProduct = Product::factory()->create(['name' => 'Treadmill Pro', 'sku' => 'TREAD-PRO']);
         $secondProduct = Product::factory()->create(['name' => 'Cycle Max', 'sku' => 'CYCLE-MAX']);
+        WarehouseStock::factory()->create(['warehouse_id' => $warehouse->id, 'product_id' => $firstProduct->id, 'quantity' => 10]);
+        WarehouseStock::factory()->create(['warehouse_id' => $warehouse->id, 'product_id' => $secondProduct->id, 'quantity' => 10]);
 
         $order = app(CreateOrder::class)->execute(
             $customer,
@@ -42,6 +45,8 @@ class CreateOrderTest extends TestCase
         $this->assertSame('100.75', $order->discount_amount);
         $this->assertSame('25899.25', $order->total_amount);
         $this->assertSame($warehouse->id, $order->warehouse_id);
+        $this->assertCount(0, $order->stockReservations);
+        $this->assertDatabaseCount('stock_movements', 0);
         $this->assertCount(2, $order->items);
         $this->assertDatabaseHas('order_items', [
             'order_id' => $order->id,

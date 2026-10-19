@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['warehouse_id', 'product_id', 'quantity'])]
+#[Fillable(['warehouse_id', 'product_id', 'quantity', 'reserved_quantity'])]
 class WarehouseStock extends Model
 {
     /** @use HasFactory<WarehouseStockFactory> */
@@ -19,7 +19,12 @@ class WarehouseStock extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['quantity' => 'integer'];
+        return ['quantity' => 'integer', 'reserved_quantity' => 'integer'];
+    }
+
+    public function getAvailableQuantityAttribute(): int
+    {
+        return $this->quantity - $this->reserved_quantity;
     }
 
     /** @return BelongsTo<Warehouse, $this> */

@@ -6,9 +6,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use LogicException;
 
-#[Fillable(['order_id', 'product_id', 'product_name', 'product_sku', 'quantity', 'unit_price', 'line_total'])]
+#[Fillable(['order_id', 'product_id', 'product_name', 'product_sku', 'quantity', 'unit_price', 'discount_amount', 'tax_amount', 'line_total'])]
 class OrderItem extends Model
 {
     use HasUuids;
@@ -19,6 +20,8 @@ class OrderItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'tax_amount' => 'decimal:2',
             'line_total' => 'decimal:2',
         ];
     }
@@ -29,6 +32,14 @@ class OrderItem extends Model
             if ($orderItem->quantity < 1) {
                 throw new LogicException('Order item quantities must be positive.');
             }
+        });
+
+        static::updating(static function (): void {
+            throw new LogicException('Order item snapshots are immutable.');
+        });
+
+        static::deleting(static function (): void {
+            throw new LogicException('Order item snapshots cannot be deleted.');
         });
     }
 
@@ -42,5 +53,10 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function stockReservation(): HasOne
+    {
+        return $this->hasOne(StockReservation::class);
     }
 }

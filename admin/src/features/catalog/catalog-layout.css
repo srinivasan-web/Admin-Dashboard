@@ -1,0 +1,509 @@
+/* Product and Warehouse pages share one aligned content column. */
+.product-editor-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.catalog-layout .product-editor .table-scroll table {
+  min-width: 640px;
+}
+
+.catalog-layout .product-editor .table-scroll input[type="number"] {
+  max-width: 100px;
+}
+
+.catalog-layout .product-media-panel {
+  padding: 16px;
+  border: 1px solid var(--df-border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.catalog-layout .product-media-panel > h3,
+.catalog-layout .product-media-queue > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.catalog-layout .media-count {
+  color: var(--df-text-secondary);
+  font-size: 13px;
+}
+
+.catalog-layout .product-media-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.catalog-layout .product-media-thumb {
+  position: relative;
+  display: grid;
+  width: 80px;
+  height: 80px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--df-border);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.catalog-layout .product-media-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.catalog-layout .product-media-thumb span {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 3px 4px;
+  overflow: hidden;
+  background: rgb(17 17 17 / 72%);
+  color: #fff;
+  font-size: 10px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-layout .product-media-empty {
+  margin: 0 0 16px;
+  color: var(--df-text-secondary);
+  font-size: 13px;
+}
+
+.catalog-layout .product-media-dropzone {
+  display: flex;
+  width: 100%;
+  min-height: 170px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--df-border);
+  border-radius: 6px;
+  background: var(--df-surface);
+  color: var(--df-text-secondary);
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.catalog-layout .product-media-dropzone strong {
+  color: var(--df-text);
+  font-size: 14px;
+}
+
+.catalog-layout .product-media-dropzone span {
+  font-size: 12px;
+}
+
+.catalog-layout .product-media-dropzone:is(:hover, :focus-visible, .is-drag-active) {
+  border-color: var(--df-primary, #f4511e);
+  background: #fff8f5;
+}
+
+.catalog-layout .product-media-dropzone:focus-visible {
+  outline: 3px solid rgb(244 81 30 / 22%);
+  outline-offset: 2px;
+}
+
+.catalog-layout .product-media-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.catalog-layout .product-media-type {
+  display: grid;
+  grid-template-columns: minmax(100px, 160px) minmax(160px, 260px);
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.catalog-layout .product-media-queue {
+  margin-top: 18px;
+}
+
+.catalog-layout .product-media-queued-card {
+  display: grid;
+  width: 190px;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--df-border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: grab;
+}
+
+.catalog-layout .product-media-queued-card > img {
+  width: 100%;
+  height: 100px;
+  object-fit: contain;
+  background: var(--df-surface);
+}
+
+.catalog-layout .product-media-filename {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-layout .product-media-queue-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--df-text-secondary);
+  font-size: 11px;
+}
+
+.catalog-layout .product-media-queue-actions label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+  font-size: 11px;
+}
+
+.catalog-layout .product-media-queue-actions .icon-button {
+  width: 28px;
+  min-height: 28px;
+  padding: 4px;
+}
+.catalog-layout .admin-content > * {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+
+.catalog-layout .admin-topbar {
+  min-height: 64px;
+  padding: 16px 0;
+  justify-content: flex-start;
+}
+
+.catalog-topbar-label {
+  color: var(--df-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.catalog-layout :is(.workspace-list, .workspace-form) {
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  padding-top: 0;
+}
+
+.catalog-layout .breadcrumb {
+  margin-bottom: 12px;
+  overflow-wrap: anywhere;
+}
+
+.catalog-layout .workspace-header {
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.catalog-layout .workspace-header > :first-child {
+  min-width: 0;
+}
+
+.catalog-layout .workspace-header h1 {
+  font-size: clamp(26px, 2.5vw, 36px);
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.catalog-layout .page-intro {
+  margin: 8px 0 0;
+  max-width: 72ch;
+  line-height: 1.5;
+}
+
+.catalog-layout .header-actions {
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.catalog-layout .card {
+  min-width: 0;
+  padding: 24px;
+  margin-top: 24px;
+  box-shadow: none;
+}
+
+.catalog-layout .card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.catalog-layout .section-heading {
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.catalog-layout .section-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.catalog-layout .filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  margin-bottom: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.catalog-layout .product-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.catalog-layout .master-form-card {
+  max-width: 100%;
+  margin-top: 0;
+}
+
+.catalog-layout .master-form-actions {
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.catalog-layout .master-form-actions button {
+  width: auto;
+  min-width: 144px;
+}
+
+.catalog-layout .master-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.catalog-layout .master-checkbox input {
+  min-height: auto;
+}
+
+.catalog-layout .product-filter-bar.filters-collapsed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.catalog-layout .filter-bar :is(input, select, button) {
+  min-height: 38px;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .catalog-layout .filter-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-layout .master-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-layout .master-form-actions {
+    flex-wrap: wrap;
+  }
+
+  .catalog-layout .master-form-actions button {
+    flex: 1 1 100%;
+  }
+}
+
+.catalog-layout .table-scroll {
+  box-shadow: none;
+}
+
+.catalog-layout .table-scroll :is(th, td) {
+  width: auto;
+  min-width: 0;
+  padding: 12px 16px;
+  vertical-align: middle;
+}
+
+.catalog-layout .table-scroll th {
+  background: var(--df-surface);
+}
+
+.catalog-layout .table-scroll td.table-actions {
+  display: table-cell;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.catalog-layout td.table-actions button + button {
+  margin-left: 8px;
+}
+
+.catalog-layout :is(.actions-heading, .warehouse-master-card th:last-child) {
+  text-align: right;
+}
+
+.catalog-layout .table-scroll .product-list-table {
+  min-width: 1080px;
+}
+
+.catalog-layout .product-list-table :is(th, td):first-child {
+  width: 72px;
+}
+
+.catalog-layout .product-list-table :is(th, td):nth-child(2) {
+  min-width: 200px;
+  max-width: 320px;
+  overflow-wrap: anywhere;
+}
+
+.catalog-layout
+  .product-list-table
+  :is(th, td):is(:nth-child(5), :nth-child(6), :nth-child(7)) {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.catalog-layout .stock-cell {
+  align-items: flex-end;
+}
+
+.catalog-layout .icon-button {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  padding: 0;
+}
+
+.catalog-layout .warehouse-master-card .table-scroll {
+  margin-top: 16px;
+}
+
+.catalog-layout .warehouse-master-card table {
+  min-width: 440px;
+}
+
+.catalog-layout .warehouse-master-card td:first-child {
+  overflow-wrap: anywhere;
+}
+
+.catalog-layout .warehouse-master-form {
+  max-width: 640px;
+}
+
+.catalog-layout .warehouse-stock-table {
+  min-width: 720px;
+}
+
+.catalog-layout .warehouse-stock-table :is(th, td):first-child {
+  width: 40%;
+}
+
+.catalog-layout .warehouse-stock-table :is(th, td):nth-child(3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.catalog-layout .product-editor .card {
+  margin-top: 0;
+}
+
+.catalog-layout .product-form-module > .product-operations {
+  padding: 0;
+  border: 0;
+}
+
+.catalog-layout :is(.operations-stock, .operations-media) .operations-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.catalog-layout .operations-stock .operations-grid form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.catalog-layout .operations-stock form > :is(h3, p, label:first-of-type) {
+  grid-column: 1 / -1;
+}
+
+.catalog-layout .operations-stock form > button {
+  justify-self: start;
+}
+
+.catalog-layout .stock-history {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--df-border);
+}
+
+.catalog-layout .detail-tabs {
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+  .catalog-layout .workspace-header {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .catalog-layout .card {
+    padding: 16px;
+  }
+
+  .catalog-layout .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .catalog-layout .header-actions button {
+    flex: 1 1 auto;
+  }
+
+  .catalog-layout .section-heading {
+    flex-wrap: wrap;
+  }
+
+  /* Flex handles wrapping seamlessly on mobile */
+
+  .catalog-layout .operations-stock .operations-grid form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-layout .operations-stock form > button {
+    width: 100%;
+  }
+}
+
+/* Full page width alignment */
+.catalog-layout .compact-form-shell {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-inline: 0 !important;
+}

@@ -22,9 +22,8 @@ class WarehouseStockTest extends TestCase
     {
         $this->assertTrue(Schema::hasTable('warehouse_stocks'));
         $this->assertTrue(Schema::hasColumns('warehouse_stocks', [
-            'id', 'warehouse_id', 'product_id', 'quantity', 'created_at', 'updated_at',
+            'id', 'warehouse_id', 'product_id', 'quantity', 'reserved_quantity', 'created_at', 'updated_at',
         ]));
-        $this->assertFalse(Schema::hasColumn('warehouse_stocks', 'reserved_quantity'));
         $this->assertFalse(Schema::hasColumn('warehouse_stocks', 'reorder_level'));
         $this->assertFalse(Schema::hasColumn('warehouse_stocks', 'variant_id'));
         $this->assertFalse(Schema::hasColumn('warehouse_stocks', 'deleted_at'));

@@ -14,20 +14,14 @@ class WarehouseTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * Warehouses store only the PDF-supported location label and support fields.
-     */
+    /** Warehouses retain their existing identity and now support verified allocation locations. */
     public function test_warehouses_table_has_the_approved_columns(): void
     {
         $this->assertTrue(Schema::hasTable('warehouses'));
         $this->assertTrue(Schema::hasColumns('warehouses', [
-            'id', 'name', 'created_at', 'updated_at',
+            'id', 'name', 'address', 'city', 'state', 'postal_code', 'latitude', 'longitude', 'created_at', 'updated_at',
         ]));
         $this->assertFalse(Schema::hasColumn('warehouses', 'code'));
-        $this->assertFalse(Schema::hasColumn('warehouses', 'address'));
-        $this->assertFalse(Schema::hasColumn('warehouses', 'city'));
-        $this->assertFalse(Schema::hasColumn('warehouses', 'state'));
-        $this->assertFalse(Schema::hasColumn('warehouses', 'postal_code'));
         $this->assertFalse(Schema::hasColumn('warehouses', 'is_active'));
         $this->assertFalse(Schema::hasColumn('warehouses', 'deleted_at'));
     }

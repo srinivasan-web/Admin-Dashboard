@@ -22,11 +22,11 @@ class StockMovementTest extends TestCase
     {
         $this->assertTrue(Schema::hasTable('stock_movements'));
         $this->assertTrue(Schema::hasColumns('stock_movements', [
-            'id', 'warehouse_stock_id', 'movement_type', 'quantity_delta', 'created_by', 'created_at',
+            'id', 'warehouse_stock_id', 'warehouse_id', 'product_id', 'order_id', 'order_item_id',
+            'movement_type', 'quantity_delta', 'quantity', 'reference_type', 'reference_id',
+            'idempotency_key', 'created_by', 'created_at',
         ]));
         $this->assertFalse(Schema::hasColumn('stock_movements', 'updated_at'));
-        $this->assertFalse(Schema::hasColumn('stock_movements', 'reference_type'));
-        $this->assertFalse(Schema::hasColumn('stock_movements', 'reference_id'));
         $this->assertFalse(Schema::hasColumn('stock_movements', 'deleted_at'));
     }
 

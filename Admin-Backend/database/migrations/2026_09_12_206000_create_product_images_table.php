@@ -12,20 +12,33 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product_images', function (Blueprint $table): void {
+            $table->engine = 'InnoDB';
+
             $table->uuid('id')->primary();
-            $table->foreignUuid('product_id')->constrained()->cascadeOnDelete();
-            $table->foreignUuid('media_id')->constrained()->restrictOnDelete();
+
+            $table->foreignUuid('product_id')
+                ->constrained('products')
+                ->cascadeOnDelete();
+
+            $table->foreignUuid('media_id')
+                ->constrained('media')
+                ->restrictOnDelete();
+
             $table->string('type');
+
             $table->unsignedInteger('sort_order')->default(0);
+
             $table->boolean('is_primary')->default(false);
-            $table->uuid('primary_product_id')
-                ->nullable()
-                ->storedAs('case when `is_primary` then `product_id` else null end');
+
             $table->timestamps();
 
             $table->unique(['product_id', 'media_id']);
-            $table->unique('primary_product_id');
-            $table->index(['product_id', 'type', 'sort_order']);
+
+            $table->index([
+                'product_id',
+                'type',
+                'sort_order',
+            ]);
         });
     }
 

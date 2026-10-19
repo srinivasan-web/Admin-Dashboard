@@ -1,0 +1,51 @@
+# JavaScript dependencies and generated output
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/.vite/
+**/.cache/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment and credentials (keep example templates trackable)
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+**/.aws/
+
+# Laravel dependencies and generated runtime files
+**/vendor/
+Admin-Backend/bootstrap/cache/*.php
+Admin-Backend/storage/logs/*.log
+Admin-Backend/storage/*.key
+Admin-Backend/public/build/
+Admin-Backend/public/hot
+Admin-Backend/public/storage
+Admin-Backend/.phpunit.result.cache
+Admin-Backend/.phpunit.cache/
+
+# Local editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.fleet/
+.history/
+.cursor/
+.zed/
+
+# Machine-local tooling and private agent notes; keep tracked AGENTS.md files
+/.agents/
+/.codex/
+/memory/
+/context/
+
+# Temporary editor files
+*.swp
+*.swo
+*~

@@ -14,7 +14,7 @@ class ProductTypeTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Product types use the fields explicitly presented by the PDF form.
+     * Product types retain their catalog fields and optional presentation media.
      */
     public function test_product_types_table_has_the_approved_columns(): void
     {
@@ -24,11 +24,12 @@ class ProductTypeTest extends TestCase
             'name',
             'slug',
             'description',
+            'image_media_id',
+            'sort_order',
             'is_active',
             'created_at',
             'updated_at',
         ]));
-        $this->assertFalse(Schema::hasColumn('product_types', 'sort_order'));
         $this->assertFalse(Schema::hasColumn('product_types', 'deleted_at'));
     }
 

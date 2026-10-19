@@ -20,4 +20,12 @@ class Media extends Model
     {
         return $this->hasMany(ProductImage::class);
     }
+
+    public function isReferenced(): bool
+    {
+        return $this->productImages()->exists()
+            || Category::query()->where('image_media_id', $this->id)->exists()
+            || ProductType::query()->where('image_media_id', $this->id)->exists()
+            || Banner::query()->where('desktop_media_id', $this->id)->orWhere('mobile_media_id', $this->id)->exists();
+    }
 }

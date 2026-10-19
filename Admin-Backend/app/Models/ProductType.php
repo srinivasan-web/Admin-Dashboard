@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'description', 'is_active'])]
+#[Fillable(['name', 'slug', 'description', 'image_media_id', 'sort_order', 'is_active'])]
 class ProductType extends Model
 {
     /** @use HasFactory<ProductTypeFactory> */
@@ -24,6 +25,7 @@ class ProductType extends Model
     {
         return [
             'is_active' => 'boolean',
+            'sort_order' => 'integer',
         ];
     }
 
@@ -31,5 +33,11 @@ class ProductType extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /** @return BelongsTo<Media, $this> */
+    public function imageMedia(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'image_media_id');
     }
 }

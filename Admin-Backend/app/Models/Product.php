@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'brand_id', 'category_id', 'product_type_id', 'hsn_code_id', 'name', 'group_name',
     'sku', 'mrp_price', 'sale_price', 'tag', 'sort_order', 'is_active',
-    'is_trade_product', 'description',
+    'is_trade_product', 'description', 'slug', 'short_description',
 ])]
 class Product extends Model
 {
@@ -47,6 +47,12 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    /** @return HasMany<CategoryProductListing, $this> */
+    public function categoryListingPlacements(): HasMany
+    {
+        return $this->hasMany(CategoryProductListing::class);
+    }
+
     /** @return BelongsTo<ProductType, $this> */
     public function productType(): BelongsTo
     {
@@ -65,10 +71,38 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
+    /** @return HasMany<ProductDetail, $this> */
+    public function details(): HasMany
+    {
+        return $this->hasMany(ProductDetail::class);
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Relations\HasOne<ProductAdditionalDetail, $this> */
+    public function additionalDetails(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ProductAdditionalDetail::class);
+    }
+
     /** @return HasMany<ProductVariant, $this> */
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    public function productAttributes(): HasMany
+    {
+        return $this->hasMany(ProductAttribute::class);
+    }
+
+    public function highlights(): HasMany
+    {
+        return $this->hasMany(ProductHighlight::class);
+    }
+
+    /** @return HasMany<ProductPrice, $this> */
+    public function prices(): HasMany
+    {
+        return $this->hasMany(ProductPrice::class);
     }
 
     /** @return HasMany<WarehouseStock, $this> */
