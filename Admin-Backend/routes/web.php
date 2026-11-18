@@ -5,16 +5,22 @@ use App\Http\Controllers\Api\V1\Admin\AttributeController;
 use App\Http\Controllers\Api\V1\Admin\BannerController;
 use App\Http\Controllers\Api\V1\Admin\CatalogMasterController;
 use App\Http\Controllers\Api\V1\Admin\CategoryListingController;
+use App\Http\Controllers\Api\V1\Admin\CategoryComparisonController;
+use App\Http\Controllers\Api\V1\Admin\CategoryFaqController;
 use App\Http\Controllers\Api\V1\Admin\ComboController;
 use App\Http\Controllers\Api\V1\Admin\HsnCodeController;
 use App\Http\Controllers\Api\V1\Admin\MerchandisingController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\OrderController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
+use App\Http\Controllers\Api\V1\Admin\ProductOfferController;
 use App\Http\Controllers\Api\V1\Admin\ProductSpecificationController;
+use App\Http\Controllers\Api\V1\Admin\ShopBenefitController;
 use App\Http\Controllers\Api\V1\Admin\WarehouseController;
 use App\Http\Controllers\Api\V1\Admin\WarehouseStockController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\Admin\FinanceConfigurationController;
+use App\Http\Controllers\Api\V1\Admin\EmiEnquiryController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,6 +32,13 @@ Route::prefix('api/v1/admin')->middleware('request_id')->group(function (): void
     Route::post('auth/login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login');
 
     Route::middleware('auth')->group(function (): void {
+        Route::get('finance/delivery-status', [FinanceConfigurationController::class, 'deliveryStatus']);
+        Route::get('finance/emi-enquiries', [EmiEnquiryController::class, 'index']);
+        Route::get('finance/emi-enquiries/{enquiry}', [EmiEnquiryController::class, 'show'])->whereUuid('enquiry');
+        Route::post('finance/emi-enquiries/{enquiry}/retry', [EmiEnquiryController::class, 'retry'])->whereUuid('enquiry')->middleware('throttle:10,1');
+        Route::get('finance/{kind}', [FinanceConfigurationController::class, 'index'])->whereIn('kind', ['emi-providers', 'emi-plans', 'product-emi-plans', 'flash-sales', 'flash-sale-products']);
+        Route::post('finance/{kind}', [FinanceConfigurationController::class, 'store'])->whereIn('kind', ['emi-providers', 'emi-plans', 'product-emi-plans', 'flash-sales', 'flash-sale-products']);
+        Route::put('finance/{kind}/{record}', [FinanceConfigurationController::class, 'update'])->whereIn('kind', ['emi-providers', 'emi-plans', 'product-emi-plans', 'flash-sales', 'flash-sale-products'])->whereUuid('record');
         Route::post('auth/logout', [AdminAuthController::class, 'logout']);
         Route::get('auth/me', [AdminAuthController::class, 'me']);
 
@@ -36,6 +49,14 @@ Route::prefix('api/v1/admin')->middleware('request_id')->group(function (): void
         Route::delete('banners/{banner}', [BannerController::class, 'destroy'])->whereUuid('banner');
         Route::get('media', [MediaController::class, 'index']);
         Route::post('media', [MediaController::class, 'store']);
+        Route::get('category-faqs', [CategoryFaqController::class, 'index']);
+        Route::post('category-faqs', [CategoryFaqController::class, 'store']);
+        Route::put('category-faqs/{faq}', [CategoryFaqController::class, 'update'])->whereUuid('faq');
+        Route::delete('category-faqs/{faq}', [CategoryFaqController::class, 'destroy'])->whereUuid('faq');
+        Route::get('shop-benefits', [ShopBenefitController::class, 'index']);
+        Route::post('shop-benefits', [ShopBenefitController::class, 'store']);
+        Route::put('shop-benefits/{benefit}', [ShopBenefitController::class, 'update'])->whereUuid('benefit');
+        Route::delete('shop-benefits/{benefit}', [ShopBenefitController::class, 'destroy'])->whereUuid('benefit');
 
         Route::get('orders', [OrderController::class, 'index']);
         Route::get('orders/abandoned', [OrderController::class, 'abandoned']);
@@ -59,6 +80,8 @@ Route::prefix('api/v1/admin')->middleware('request_id')->group(function (): void
         Route::get('categories', [CatalogMasterController::class, 'index'])->defaults('master', 'categories');
         Route::post('categories', [CatalogMasterController::class, 'store'])->defaults('master', 'categories');
         Route::put('categories/{record}', [CatalogMasterController::class, 'update'])->defaults('master', 'categories');
+        Route::get('categories/{category}/comparison-specifications', [CategoryComparisonController::class, 'index'])->whereUuid('category');
+        Route::put('categories/{category}/comparison-specifications', [CategoryComparisonController::class, 'update'])->whereUuid('category');
         Route::get('categories/{category}/listings', [CategoryListingController::class, 'index'])->whereUuid('category');
         Route::post('categories/{category}/listings', [CategoryListingController::class, 'store'])->whereUuid('category');
         Route::put('categories/{category}/listings/{listing}', [CategoryListingController::class, 'update'])
@@ -69,6 +92,10 @@ Route::prefix('api/v1/admin')->middleware('request_id')->group(function (): void
         Route::put('hsn-codes/{hsnCode}', [HsnCodeController::class, 'update']);
 
         Route::get('products', [ProductController::class, 'index']);
+        Route::get('product-offers', [ProductOfferController::class, 'index']);
+        Route::post('product-offers', [ProductOfferController::class, 'store']);
+        Route::put('product-offers/{offer}', [ProductOfferController::class, 'update'])->whereUuid('offer');
+        Route::delete('product-offers/{offer}', [ProductOfferController::class, 'destroy'])->whereUuid('offer');
         Route::get('products/export', [ProductController::class, 'export']);
         Route::post('products', [ProductController::class, 'store']);
         Route::get('products/{product}', [ProductController::class, 'show']);

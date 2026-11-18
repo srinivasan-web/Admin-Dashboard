@@ -48,8 +48,13 @@ async function handleResponse<T>(response: Response): Promise<T> {
       window.dispatchEvent(new Event("durafit:admin-session-expired"));
     }
 
+    const fallback = response.status >= 500
+      ? `Server error (HTTP ${response.status}). Please try again or contact support.`
+      : response.status === 403
+        ? "You do not have permission to access this information."
+        : `Request failed (HTTP ${response.status}).`;
     throw new ApiError(
-      payload.error?.message ?? "Request failed.",
+      payload.error?.message ?? fallback,
       response.status,
       payload.error?.details,
     );

@@ -43,7 +43,20 @@ export default function App() {
   const location = useLocation();
   const [pathname, query = ""] = location.split("?");
   const path = pathname.replace(/\/$/, "") || "/";
-  const productId = /^\/products\/([^/]+)$/.exec(path)?.[1];
+  const productSegment = /^\/products\/([^/]+)$/.exec(path)?.[1];
+  const categorySegment = /^\/equipment\/([^/]+)$/.exec(path)?.[1];
+  let categorySlug: string | undefined;
+  try {
+    categorySlug = categorySegment ? decodeURIComponent(categorySegment) : undefined;
+  } catch {
+    categorySlug = undefined;
+  }
+  let productId: string | undefined;
+  try {
+    productId = productSegment ? decodeURIComponent(productSegment) : undefined;
+  } catch {
+    productId = undefined;
+  }
   const categories = useCatalogResource<Collection<Category>>("/categories");
   const productTypes = useCatalogResource<Collection<ProductType>>("/product-types");
   useEffect(() => {
@@ -76,10 +89,16 @@ export default function App() {
               productTypeError={productTypes.error}
               retryProductTypes={productTypes.retry}
             />
-          ) : path === "/products" ? (
+          ) : categorySegment && (!categories.data || !productTypes.data) ? (
+            categories.error || productTypes.error ? <EmptyState title="Equipment types couldn't load." description="Please refresh to try again." /> : <LoadingState label="Loading equipment…" />
+          ) : categorySegment && !categories.data?.data.some((category) => category.slug === categorySlug)
+              && !productTypes.data?.data.some((type) => type.slug === categorySlug) ? (
+            <EmptyState title="Category not found." description="Browse our available equipment instead." />
+          ) : path === "/products" || categorySegment ? (
             <CatalogPage
-              key={query}
+              key={`${path}?${query}`}
               query={query}
+              categorySlug={categorySlug}
               categories={categories.data?.data}
               productTypes={productTypes.data?.data}
               categoryError={categories.error}

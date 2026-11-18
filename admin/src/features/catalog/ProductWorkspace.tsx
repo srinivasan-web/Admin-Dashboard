@@ -135,9 +135,11 @@ export function ProductWorkspace({
 
   useEffect(() => {
     function refreshed(product?: Product): Product | undefined {
-      return product
-        ? (products.find((candidate) => candidate.id === product.id) ?? product)
-        : undefined;
+      if (!product) return undefined;
+      const listed = products.find((candidate) => candidate.id === product.id);
+      // List resources omit detail relationships. Keep the loaded detail/edit
+      // resource when the list refreshes after a save.
+      return listed ? { ...listed, ...product, available_stock: listed.available_stock } : product;
     }
 
     setEditing(refreshed);

@@ -7,6 +7,7 @@ import { InventoryPage } from "./InventoryPage";
 import { ComboWorkspace } from "./ComboWorkspace";
 import { FeaturedProductsWorkspace } from "./FeaturedProductsWorkspace";
 import { ErrorState, LoadingState } from "../../components/ui";
+import { toast } from "../../components/ui/Toast";
 import {
   emptyMasters,
   useCatalogResource,
@@ -104,6 +105,7 @@ function ProductsCatalogPage({
         }}
         onSaved={() => {
           setNotice("Saved successfully.");
+          toast.success("Saved successfully.");
           listing.refresh();
         }}
         onRefresh={listing.refresh}
@@ -146,6 +148,7 @@ function CatalogResource<T>({
             data,
             () => {
               setNotice("Saved successfully.");
+              toast.success("Saved successfully.");
               refresh();
             },
             refresh,

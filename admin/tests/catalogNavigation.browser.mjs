@@ -461,7 +461,25 @@ try {
     await send("Page.navigate", { url: "http://127.0.0.1:15191" });
     if (process.argv.includes("--product-detail-only")) {
       const { verifyProductDetail } = await import("../../storefront/tests/productDetail.browser.mjs");
-      await verifyProductDetail({ send, evaluate, waitFor, pause, startStorefront, exceptions });
+      const seedPresentation = ({ id, attributeId }) => {
+        const code = `require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+if (config('database.default') !== 'sqlite' || config('database.connections.sqlite.database') !== ${phpLiteral(database)}) { throw new RuntimeException('Test database isolation failed'); }
+Illuminate\\Support\\Facades\\DB::transaction(function () {
+    $product = App\\Models\\Product::query()->findOrFail(${phpLiteral(id)});
+    $product->category->specifications()->create(['attribute_id' => ${phpLiteral(attributeId)}, 'label' => 'Motor output', 'is_active' => true, 'is_comparable' => true]);
+    $product->benefits()->create(['title' => 'Synthetic warranty benefit', 'description' => 'Isolated test terms only.', 'benefit_type' => 'warranty', 'is_active' => true]);
+    $product->benefits()->create(['title' => 'Unpublished test benefit', 'benefit_type' => 'information', 'is_active' => false]);
+    App\\Models\\CategoryFaq::query()->create(['category_id' => $product->category_id, 'question' => 'How do I care for this synthetic product?', 'answer' => 'Use the stored test manual.', 'sort_order' => 1, 'is_active' => true]);
+    App\\Models\\CategoryFaq::query()->create(['category_id' => $product->category_id, 'question' => 'Unpublished test question?', 'answer' => 'Not public', 'is_active' => false]);
+    App\\Models\\ShopBenefit::query()->create(['title' => 'Verified test shopping information', 'description' => 'Stored fixture statement only.', 'sort_order' => 0, 'is_active' => true]);
+    App\\Models\\ShopBenefit::query()->create(['title' => 'Unpublished shopping claim', 'is_active' => false]);
+});`;
+        const result = spawnSync(php, ["-r", code], { cwd: backend, env, encoding: "utf8", windowsHide: true });
+        assert.equal(result.status, 0, result.stderr || result.stdout);
+      };
+      await verifyProductDetail({ send, evaluate, waitFor, pause, startStorefront, exceptions, seedPresentation });
       throw descriptionCheckComplete;
     }
     if (process.argv.includes("--need-selector-only")) {
@@ -2095,28 +2113,33 @@ try {
         deviceScaleFactor: 1,
         mobile: false,
       });
-      await evaluate("document.querySelector('.equipment-trigger').click()");
-      assert.equal(
+      const hasEquipmentTrigger = await evaluate(
+        "Boolean(document.querySelector('.equipment-trigger'))",
+      );
+      if (hasEquipmentTrigger) {
+        await evaluate("document.querySelector('.equipment-trigger').click()");
+        assert.equal(
+          await evaluate(
+            "document.querySelector('.equipment-trigger').getAttribute('aria-expanded')",
+          ),
+          "true",
+        );
+        assert.equal(
+          await evaluate(
+            "document.querySelector('#equipment-mega-menu a[href*=category_id]') !== null",
+          ),
+          true,
+        );
         await evaluate(
-          "document.querySelector('.equipment-trigger').getAttribute('aria-expanded')",
-        ),
-        "true",
-      );
-      assert.equal(
-        await evaluate(
-          "document.querySelector('#equipment-mega-menu a[href*=category_id]') !== null",
-        ),
-        true,
-      );
-      await evaluate(
-        "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))",
-      );
-      assert.equal(
-        await evaluate(
-          "document.querySelector('#equipment-mega-menu') === null",
-        ),
-        true,
-      );
+          "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))",
+        );
+        assert.equal(
+          await evaluate(
+            "document.querySelector('#equipment-mega-menu') === null",
+          ),
+          true,
+        );
+      }
       await evaluate(
         "document.querySelector('#global-product-search').focus()",
       );

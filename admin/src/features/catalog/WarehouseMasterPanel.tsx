@@ -8,6 +8,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { errorMessage } from "../../api/client";
+import { toast } from "../../components/ui/Toast";
 import { deleteWarehouse, saveWarehouse } from "./catalogApi";
 import type { WarehouseLocation } from "./types";
 
@@ -99,13 +100,17 @@ export function WarehouseMasterPanel({
         },
         editing?.id,
       );
-      setNotice(editing ? "Warehouse updated." : "Warehouse created.");
+      const msg = editing ? "Warehouse updated." : "Warehouse created.";
+      setNotice(msg);
+      toast.success(msg);
       setEditing(undefined);
       setAdding(false);
       setForm(emptyForm);
       onSaved();
     } catch (reason) {
-      setError(errorMessage(reason));
+      const err = errorMessage(reason);
+      setError(err);
+      toast.error(err);
     } finally {
       setBusy(false);
     }
@@ -124,9 +129,12 @@ export function WarehouseMasterPanel({
     try {
       await deleteWarehouse(warehouse.id);
       setNotice("Warehouse deleted.");
+      toast.success("Warehouse deleted.");
       onSaved();
     } catch (reason) {
-      setError(errorMessage(reason));
+      const err = errorMessage(reason);
+      setError(err);
+      toast.error(err);
     } finally {
       setBusy(false);
     }

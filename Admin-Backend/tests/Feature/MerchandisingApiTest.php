@@ -80,6 +80,29 @@ class MerchandisingApiTest extends TestCase
         $this->getJson('/api/v1/merchandising/featured')->assertOk()->assertJsonCount(0, 'data');
     }
 
+    public function test_public_placement_can_be_bounded_without_changing_the_default_feed(): void
+    {
+        $this->actingAs($this->manager());
+        $products = collect(range(1, 3))->map(function (int $position): Product {
+            $product = Product::factory()->create(['name' => "Bestseller {$position}"]);
+            WarehouseStock::factory()->create(['product_id' => $product->id, 'quantity' => 2]);
+            $this->postJson('/api/v1/admin/merchandising/bestsellers/products', [
+                'product_id' => $product->id,
+                'sort_order' => $position,
+            ])->assertCreated();
+
+            return $product;
+        });
+
+        $this->getJson('/api/v1/merchandising/bestsellers?limit=2')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $products[0]->id)
+            ->assertJsonPath('data.1.id', $products[1]->id);
+        $this->getJson('/api/v1/merchandising/bestsellers')->assertOk()->assertJsonCount(3, 'data');
+        $this->getJson('/api/v1/merchandising/bestsellers?limit=0')->assertUnprocessable();
+    }
+
     public function test_admin_placement_requires_catalog_permission(): void
     {
         $product = Product::factory()->create();

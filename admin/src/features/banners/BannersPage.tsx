@@ -11,8 +11,9 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { errorMessage } from "../../api/client";
+import { apiRequest, errorMessage } from "../../api/client";
 import { StatusBadge } from "../../components/ui";
+import { toast } from "../../components/ui/Toast";
 import { BannerForm } from "./BannerForm";
 import {
   deleteBanner,
@@ -57,6 +58,7 @@ export function BannersPage({
   onList: () => void;
 }) {
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [targetNames, setTargetNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
@@ -74,6 +76,17 @@ export function BannersPage({
   const [previewBanner, setPreviewBanner] = useState<Banner | null>(null);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const pageSize = 10;
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      apiRequest<{ data: Array<{ id: string; name: string }> }>("/categories"),
+      apiRequest<{ data: Array<{ id: string; name: string }> }>("/product-types"),
+    ]).then(([categories, types]) => {
+      if (active) setTargetNames(Object.fromEntries([...categories.data, ...types.data].map((record) => [record.id, record.name])));
+    }).catch(() => { /* The banner list remains usable while target names load. */ });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -146,12 +159,14 @@ export function BannersPage({
     setError(undefined);
     try {
       await updateBanner(banner.id, { is_active: !banner.is_active });
-      setNotice(
-        `${banner.title} ${banner.is_active ? "deactivated" : "activated"}.`,
-      );
+      const msg = `${banner.title} ${banner.is_active ? "deactivated" : "activated"}.`;
+      setNotice(msg);
+      toast.success(msg);
       setReloadKey((key) => key + 1);
     } catch (reason) {
-      setError(errorMessage(reason));
+      const err = errorMessage(reason);
+      setError(err);
+      toast.error(err);
     } finally {
       setBusyId(undefined);
     }
@@ -168,11 +183,15 @@ export function BannersPage({
     setError(undefined);
     try {
       await deleteBanner(banner.id);
-      setNotice(`${banner.title} deleted.`);
+      const msg = `${banner.title} deleted.`;
+      setNotice(msg);
+      toast.success(msg);
       if (visible.length === 1 && page > 1) setPage((current) => current - 1);
       setReloadKey((key) => key + 1);
     } catch (reason) {
-      setError(errorMessage(reason));
+      const err = errorMessage(reason);
+      setError(err);
+      toast.error(err);
     } finally {
       setBusyId(undefined);
     }
@@ -186,7 +205,9 @@ export function BannersPage({
         id={id}
         onCancel={onList}
         onSaved={() => {
-          setNotice(mode === "edit" ? "Banner updated." : "Banner created.");
+          const msg = mode === "edit" ? "Banner updated." : "Banner created.";
+          setNotice(msg);
+          toast.success(msg);
           setReloadKey((key) => key + 1);
           onList();
         }}
@@ -432,6 +453,8 @@ export function BannersPage({
                           <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 capitalize">
                             {banner.page ?? "unassigned"}
                           </span>
+                          {banner.category_id && <span className="ml-1 text-[11px] text-slate-500">Category: {targetNames[banner.category_id] ?? "Loading…"}</span>}
+                          {banner.product_type_id && <span className="ml-1 text-[11px] text-slate-500">Equipment: {targetNames[banner.product_type_id] ?? "Loading…"}</span>}
                         </td>
 
                         <td className="py-3.5 px-4">

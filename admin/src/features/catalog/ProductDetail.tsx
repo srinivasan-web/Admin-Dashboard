@@ -6,6 +6,7 @@ import { ProductManagementHeader } from "./ProductManagementHeader";
 import type { ProductSpecification } from "./types";
 import type { CatalogAttribute } from "./types";
 import { descriptionAsEditorHtml } from "../../../../shared/productDescription";
+import { getAttributeVisual } from "./attributeVisuals";
 
 type Tab =
   | "overview"
@@ -265,14 +266,33 @@ function SpecificationsView({
           </tr>
         </thead>
         <tbody>
-          {specifications.map((item) => (
-            <tr key={item.id}>
-              <td>{item.attribute.name}</td>
-              <td>{item.value}</td>
-              <td>{item.attribute.unit ?? "—"}</td>
-              <td>{item.sort_order}</td>
-            </tr>
-          ))}
+          {specifications.map((item) => {
+            const visual = getAttributeVisual(
+              item.attribute.name,
+              item.attribute.slug,
+              item.attribute.icon,
+              14,
+            );
+            return (
+              <tr key={item.id}>
+                <td>
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${visual.bg} shadow-2xs`}
+                      title={item.attribute.name}
+                      aria-hidden="true"
+                    >
+                      {visual.icon}
+                    </div>
+                    <span className="font-semibold text-slate-900">{item.attribute.name}</span>
+                  </div>
+                </td>
+                <td>{item.value}</td>
+                <td>{item.attribute.unit ?? "—"}</td>
+                <td>{item.sort_order}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

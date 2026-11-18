@@ -53,7 +53,7 @@ export function ProductSearch({
         type="submit"
         aria-label="Search equipment"
       >
-        <Search size={20} aria-hidden="true" />
+        <Search size={17} aria-hidden="true" />
       </button>
     </form>
   );

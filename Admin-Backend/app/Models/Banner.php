@@ -25,7 +25,7 @@ class Banner extends Model
     /** @var list<string> */
     protected $fillable = [
         'title', 'description', 'cta_text', 'desktop_media_id', 'mobile_media_id', 'page', 'sort_order',
-        'redirect_url', 'start_at', 'end_at', 'is_active',
+        'redirect_url', 'start_at', 'end_at', 'is_active', 'category_id', 'product_type_id',
     ];
 
     /** @return array<string, string> */
@@ -49,6 +49,12 @@ class Banner extends Model
     public function mobileMedia(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'mobile_media_id');
+    }
+
+    /** @return BelongsTo<Category, $this> */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function scopeVisibleOnHome(Builder $query): Builder

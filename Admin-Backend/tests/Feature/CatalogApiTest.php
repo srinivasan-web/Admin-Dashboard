@@ -103,6 +103,9 @@ class CatalogApiTest extends TestCase
             'sort_order' => 2, 'is_active' => true,
         ])->assertCreated()->assertJsonPath('data.image_media_id', $media->id)->json('data');
 
+        $this->getJson('/api/v1/admin/product-types')->assertOk()
+            ->assertJsonPath('data.0.image_media.original_filename', $media->original_filename);
+
         $this->getJson('/api/v1/product-types')->assertOk()
             ->assertJsonPath('data.0.name', 'Treadmills');
         $this->assertStringEndsWith('/storage/product-types/treadmills.webp',
@@ -208,6 +211,8 @@ class CatalogApiTest extends TestCase
             'sort_order' => 20, 'image_media_id' => $media->id, 'is_active' => true,
         ])->assertCreated()->assertJsonPath('data.image_media_id', $media->id)
             ->assertJsonPath('data.sort_order', 20)->json('data');
+        $this->getJson('/api/v1/admin/categories')->assertOk()
+            ->assertJsonPath('data.0.image_media.original_filename', $media->original_filename);
         $this->postJson('/api/v1/admin/categories', [
             'name' => 'Walkpads', 'slug' => 'walkpads', 'sort_order' => 10, 'is_active' => true,
         ])->assertCreated();
@@ -819,6 +824,47 @@ class CatalogApiTest extends TestCase
         $image = $product->images()->with('media')->sole();
         Storage::disk('public')->assertExists($image->media->path);
         $this->assertDatabaseHas('product_images', ['id' => $image->id, 'is_primary' => true]);
+        $this->getJson('/api/v1/admin/products')->assertOk()
+            ->assertJsonPath('data.0.images.0.is_primary', true);
+    }
+
+    public function test_ordered_360_frames_flow_from_admin_upload_to_public_product_without_becoming_primary(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->catalogManager());
+        $product = Product::factory()->create(['is_active' => true]);
+        WarehouseStock::factory()->create(['product_id' => $product->id, 'quantity' => 3]);
+        $url = "/api/v1/admin/products/{$product->id}/images";
+
+        $this->post($url, [
+            'image' => UploadedFile::fake()->image('front.jpg'),
+            'type' => 'gallery', 'is_primary' => true,
+        ], ['Accept' => 'application/json'])->assertOk();
+
+        foreach (range(0, 7) as $angle) {
+            $this->post($url, [
+                'image' => UploadedFile::fake()->image("angle-{$angle}.jpg"),
+                'type' => '360_frame', 'sort_order' => $angle + 1,
+                'is_primary' => false,
+            ], ['Accept' => 'application/json'])->assertOk();
+        }
+
+        $this->post($url, [
+            'image' => UploadedFile::fake()->image('invalid-primary.jpg'),
+            'type' => '360_frame', 'is_primary' => true,
+        ], ['Accept' => 'application/json'])->assertUnprocessable();
+
+        $this->getJson("/api/v1/products/{$product->id}")
+            ->assertOk()->assertJsonCount(9, 'data.images')
+            ->assertJsonPath('data.has_360_view', true)
+            ->assertJsonPath('data.images.0.type', 'gallery')
+            ->assertJsonPath('data.images.0.is_primary', true)
+            ->assertJsonPath('data.images.1.type', '360_frame')
+            ->assertJsonPath('data.images.8.sort_order', 8);
+
+        $this->getJson('/api/v1/products')
+            ->assertOk()->assertJsonCount(1, 'data.0.images')
+            ->assertJsonPath('data.0.has_360_view', true);
     }
 
     public function test_product_image_can_be_reordered_replaced_and_removed_without_orphaning_media(): void

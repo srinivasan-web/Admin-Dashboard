@@ -32,6 +32,8 @@ class BannerRequest extends FormRequest
             'desktop_media_id' => [$required, 'uuid', $imageMedia],
             'mobile_media_id' => [$required, 'uuid', $imageMedia],
             'page' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'category_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('categories', 'id')],
+            'product_type_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('product_types', 'id')],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
             'redirect_url' => ['sometimes', 'nullable', 'url:http,https', 'max:2048'],
             'start_at' => ['sometimes', 'nullable', 'date'],
@@ -48,6 +50,15 @@ class BannerRequest extends FormRequest
             }
 
             $banner = $this->route('banner');
+            $page = $this->input('page', $banner?->page ?? 'landing');
+            $category = $this->input('category_id', $banner?->category_id);
+            $type = $this->input('product_type_id', $banner?->product_type_id);
+            if (($category || $type) && $page !== 'listing') {
+                $validator->errors()->add('page', 'Equipment targeting is only available for listing banners.');
+            }
+            if ($category && $type) {
+                $validator->errors()->add('product_type_id', 'Select a category or a product type, not both.');
+            }
             $start = $this->exists('start_at') ? $this->input('start_at') : $banner?->start_at;
             $end = $this->exists('end_at') ? $this->input('end_at') : $banner?->end_at;
 

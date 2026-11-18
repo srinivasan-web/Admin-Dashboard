@@ -83,6 +83,12 @@ class Product extends Model
         return $this->hasOne(ProductAdditionalDetail::class);
     }
 
+    /** @return HasMany<ProductAdditionalBenefit, $this> */
+    public function benefits(): HasMany
+    {
+        return $this->hasMany(ProductAdditionalBenefit::class);
+    }
+
     /** @return HasMany<ProductVariant, $this> */
     public function variants(): HasMany
     {
@@ -103,6 +109,16 @@ class Product extends Model
     public function prices(): HasMany
     {
         return $this->hasMany(ProductPrice::class);
+    }
+
+    public function emiPlans(): HasMany
+    {
+        return $this->hasMany(ProductEmiPlan::class);
+    }
+
+    public function flashSaleProducts(): HasMany
+    {
+        return $this->hasMany(FlashSaleProduct::class);
     }
 
     /** @return HasMany<WarehouseStock, $this> */

@@ -36,6 +36,7 @@ import {
 import { sanitizeDescriptionHtml } from "../../../../shared/productDescription";
 import { ProductDescriptionEditor } from "./ProductDescriptionEditor";
 import { AttributesWorkspace } from "./AttributesWorkspace";
+import { toast } from "../../components/ui/Toast";
 import { ArrowDownRight } from "lucide-react";
 
 type Props = {
@@ -207,13 +208,15 @@ export function ProductForm({
           description: data.get("description")
             ? sanitizeDescriptionHtml(String(data.get("description")))
             : null,
-          slug: data.get("slug") || null,
-          short_description: data.get("short_description") || null,
-          details: JSON.parse(String(data.get("details_payload") ?? "[]")),
-          additional_details: Object.fromEntries(
-            ["generic_name", "model_number", "net_quantity", "country_of_origin", "manufactured_by", "marketed_by", "consumer_complaints"]
-              .map((field) => [field, data.get(field) || null]),
-          ),
+          ...(data.has("slug") ? { slug: data.get("slug") || null } : {}),
+          ...(data.has("short_description") ? { short_description: data.get("short_description") || null } : {}),
+          ...(data.has("details_payload") ? { details: JSON.parse(String(data.get("details_payload"))) } : {}),
+          ...(data.has("generic_name") ? {
+            additional_details: Object.fromEntries(
+              ["generic_name", "model_number", "net_quantity", "country_of_origin", "manufactured_by", "marketed_by", "consumer_complaints"]
+                .map((field) => [field, data.get(field) || null]),
+            ),
+          } : {}),
           tag: data.get("tag") || null,
           sort_order: data.get("sort_order") || 0,
           is_active: data.get("is_active") === "1",
@@ -236,8 +239,10 @@ export function ProductForm({
       );
       setIsDirty(false);
       leaveAllowed.current = true;
+      toast.success(mode === "create" ? "Product created successfully." : "Product changes saved successfully.");
       await onSaved(saved.data);
     } catch (reason) {
+      toast.error(errorMessage(reason));
       if (reason instanceof ApiError && reason.status === 409)
         setRequiresReview(true);
       if (
@@ -280,11 +285,6 @@ export function ProductForm({
 
   function openAttributeLibrary() {
     setShowAttributeLibrary(true);
-    window.requestAnimationFrame(() =>
-      document
-        .getElementById("attribute-library")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
   }
 
   return (
@@ -359,9 +359,7 @@ export function ProductForm({
                 className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3.5 text-xs font-medium text-emerald-800"
                 role="status"
               >
-                The core product exists. Retry saves to this same product;
-                completed related operations are retained. Do not create a second
-                product.
+                Core product saved. Review and retry any remaining sections before creating another product.
               </p>
             </div>
           )}
@@ -556,11 +554,10 @@ function ProductCoreFields({
     <section id="product-basic" className="min-w-0">
       {/* Section Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 ">
-  
           <h2 className="text-base font-bold text-slate-800 tracking-tight">
             Basic Information
           </h2>
-       
+
       </div>
 
       {/* Group 1: Product Identification */}
@@ -610,27 +607,13 @@ function ProductCoreFields({
             </label>
             {message("group_name")}
           </div>
-          <div className="sm:col-span-1 lg:col-span-3">
-            <label className="block text-xs font-semibold text-slate-700">
-              URL slug (optional)
-              <input
-                name="slug"
-                {...invalid("slug")}
-                placeholder="e.g. turbo-treadmill"
-                defaultValue={product?.slug ?? ""}
-                pattern="[a-z0-9]+(-[a-z0-9]+)*"
-                className="mt-1.5 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-hidden"
-              />
-            </label>
-            {message("slug")}
-          </div>
+
         </div>
       </div>
 
       {/* Group 2: Taxonomy & Classification */}
       <div className="pt-6">
         <div className="mb-3 flex items-center gap-2">
-      
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
           Classification
           </h3>
@@ -690,7 +673,7 @@ function ProductCoreFields({
         <div className="mb-3 flex items-center gap-2">
   
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Pricing &amp; 
+            Pricing
           </h3>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -872,82 +855,13 @@ function ProductContent({
   product?: Product;
   onEdit: () => void;
 }) {
-  const [details, setDetails] = useState<Product["details"]>(product?.details ?? []);
-  const additional = product?.additional_details;
-  const regulatoryFields: Array<[keyof NonNullable<Product["additional_details"]>, string]> = [
-    ["generic_name", "Generic name"],
-    ["model_number", "Model number"],
-    ["net_quantity", "Net quantity"],
-    ["country_of_origin", "Country of origin"],
-    ["manufactured_by", "Manufactured by"],
-    ["marketed_by", "Marketed by"],
-    ["consumer_complaints", "Consumer complaints contact"],
-  ];
-  function changeDetail(index: number, values: Partial<NonNullable<Product["details"]>[number]>) {
-    setDetails((current) => (current ?? []).map((entry, position) => position === index ? { ...entry, ...values } : entry));
-    onEdit();
-  }
   return (
     <section id="product-content" className="min-w-0">
-      <div className="mb-4">
-        <h2 className="text-base font-bold text-slate-800 tracking-tight">
-          Product Description
-        </h2>
-      
-      </div>
-      <label className="mb-4 block text-xs font-semibold text-slate-700">
-        Short summary
-        <textarea name="short_description" defaultValue={product?.short_description ?? ""} maxLength={2000} rows={2}
-          className="mt-1.5 block w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-hidden" />
-      </label>
       <ProductDescriptionEditor
         key={product?.id ?? "new"}
         initialValue={product?.description ?? ""}
         onEdit={onEdit}
       />
-      <div className="mt-6 border-t border-slate-100 pt-5">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-slate-800">Detail sections</h3>
-          <button type="button" onClick={() => { setDetails((current) => [...(current ?? []), { title: "", content: "", sort_order: current?.length ?? 0, is_active: false }]); onEdit(); }}
-            className="rounded-lg border border-orange-300 px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-50">Add section</button>
-        </div>
-        <p className="mt-1 text-xs text-slate-500">Use ordered sections for additional product information. Only published sections appear in the storefront.</p>
-        <input type="hidden" name="details_payload" value={JSON.stringify(details ?? [])} readOnly />
-        <div className="mt-3 space-y-3">
-          {(details ?? []).map((detail, index) => (
-            <div key={detail.id ?? `new-${index}`} className="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[minmax(0,1fr)_7rem_auto]">
-              <label className="text-xs font-semibold text-slate-700">Section title
-                <input value={detail.title} onChange={(event) => changeDetail(index, { title: event.target.value })} maxLength={255}
-                  className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <label className="text-xs font-semibold text-slate-700">Order
-                <input type="number" min="0" max="100000" value={detail.sort_order} onChange={(event) => changeDetail(index, { sort_order: Number(event.target.value) })}
-                  className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <button type="button" onClick={() => { setDetails((current) => (current ?? []).filter((_, position) => position !== index)); onEdit(); }}
-                className="self-end rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50">Remove</button>
-              <label className="text-xs font-semibold text-slate-700 sm:col-span-3">Content
-                <textarea value={detail.content} onChange={(event) => changeDetail(index, { content: event.target.value })} rows={3} maxLength={30000}
-                  className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 sm:col-span-3">
-                <input type="checkbox" checked={detail.is_active} onChange={(event) => changeDetail(index, { is_active: event.target.checked })} /> Publish this section
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-      <details className="mt-6 border-t border-slate-100 pt-5">
-        <summary className="cursor-pointer text-sm font-semibold text-slate-800">Additional product information</summary>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {regulatoryFields.map(([field, label]) => (
-            <label key={field} className="text-xs font-semibold text-slate-700">{label}
-              <input name={field} defaultValue={additional?.[field] ?? ""} maxLength={["manufactured_by", "marketed_by", "consumer_complaints"].includes(field) ? 10000 : 255}
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-            </label>
-          ))}
-        </div>
-      </details>
     </section>
   );
 }

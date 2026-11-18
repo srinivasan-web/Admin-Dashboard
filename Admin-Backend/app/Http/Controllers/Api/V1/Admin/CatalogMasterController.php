@@ -20,7 +20,7 @@ class CatalogMasterController extends Controller
 
         $query = $this->queryFor($master);
         if (in_array($master, ['categories', 'product-types'], true)) {
-            $query->with('imageMedia')->orderBy('sort_order');
+            $query->with(['imageMedia:id,disk,path,original_filename,mime_type,size_bytes'])->orderBy('sort_order');
         }
 
         return CatalogMasterResource::collection($query->orderBy('name')->get());

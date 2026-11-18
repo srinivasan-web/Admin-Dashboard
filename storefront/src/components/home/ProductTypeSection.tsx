@@ -173,7 +173,7 @@ export function ProductTypeSection({
                 onMouseLeave={() => setHoveredIndex(null)}
                 onFocus={() => setFocusedIndex(index)}
                 onBlur={() => setFocusedIndex(null)}
-                href={`/products?product_type_id=${encodeURIComponent(productType.id)}`}
+                href={`/equipment/${encodeURIComponent(productType.slug)}`}
                 filtered
               />
             );

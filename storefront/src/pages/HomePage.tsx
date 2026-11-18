@@ -8,10 +8,9 @@ import {
   type ProductType,
 } from "../api/catalog";
 import { HeroCarousel } from "../components/home/HeroCarousel";
-import { NeedSelector } from "../components/home/NeedSelector";
+import { LandingVideoSection } from "../components/home/LandingVideoSection";
 import { ProductCollectionCarousel } from "../components/home/ProductCollectionCarousel";
 import { ProductTypeSection } from "../components/home/ProductTypeSection";
-import { collectionProducts } from "../components/home/needScenarios";
 import { EmptyState, ErrorState, LoadingState } from "../components/Feedback";
 
 export default function HomePage({
@@ -39,22 +38,6 @@ export default function HomePage({
       <HeroCarousel autoPlay />
 
       <div className="home-content">
-        <NeedSelector
-          products={collectionProducts(
-            featured.data?.data,
-            bestsellers.data?.data,
-          )}
-          loading={
-            (!featured.data && !featured.error) ||
-            (!bestsellers.data && !bestsellers.error)
-          }
-          error={featured.error ?? bestsellers.error}
-          onRetry={() => {
-            featured.retry();
-            bestsellers.retry();
-          }}
-        />
-
         <ProductTypeSection
           productTypes={productTypes}
           productTypeError={productTypeError}
@@ -76,22 +59,7 @@ export default function HomePage({
         </section>
 
 
-        <section className="editorial-band">
-          <p className="eyebrow">A ROUTINE THAT BELONGS TO YOU</p>
-          <h2>
-            <span className="campaign-line">Small steps.</span>
-            <span className="campaign-line campaign-line-accent">
-              Room for progress.
-            </span>
-          </h2>
-          <div>
-        
-            <Link className="button light" href="/products">
-              Discover the collection{" "}
-              <ArrowRight size={18} aria-hidden="true" />
-            </Link>
-          </div>
-        </section>
+        <LandingVideoSection />
 
         <section className="home-section" id="bestsellers">
           <div className="section-heading">

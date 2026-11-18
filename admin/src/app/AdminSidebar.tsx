@@ -1,4 +1,4 @@
-﻿import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   BadgePercent,
   BarChart3,
@@ -43,6 +43,7 @@ export type AdminView =
   | "testimonials-dashboard"
   | "testimonials-all"
   | "faqs"
+  | "shop-benefits"
   | "legal-pages"
   | "banners";
 
@@ -95,11 +96,6 @@ export const unavailableModules: Partial<
     description: "Browse and moderate customer testimonials.",
     requirement:
       "Testimonial schema, publishing workflow, moderation rules, and API are required.",
-  },
-  faqs: {
-    title: "FAQs",
-    description: "Manage customer-facing frequently asked questions.",
-    requirement: "FAQ schema, publishing workflow, and API are required.",
   },
   "legal-pages": {
     title: "Legal Pages",
@@ -262,7 +258,7 @@ export function AdminSidebar({
 
   return (
     <aside
-      className={`admin-sidebar fixed top-0 left-0 bottom-0 z-30 h-screen w-[240px] min-w-[230px] max-y max-w-[350px] flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col overflow-y-auto overflow-x-hidden transition-transform duration-200 ease-in-out ${
+      className={`admin-sidebar fixed top-0 left-0 bottom-0 z-30 h-screen w-[260px] min-w-[260px] max-w-[260px] flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col overflow-y-auto overflow-x-hidden transition-transform duration-200 ease-in-out ${
         open ? "translate-x-0 shadow-2xl z-50" : "-translate-x-full lg:translate-x-0"
       }`}
     >
@@ -292,7 +288,7 @@ export function AdminSidebar({
 
       <nav
         aria-label="Admin navigation"
-        className="flex-1 overflow-y-auto px-2.5 py-3 space-y-0.5 custom-scrollbar"
+        className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 space-y-0.5 custom-scrollbar"
       >
         {item(Grid2X2, "Dashboard", "dashboard")}
 
@@ -394,20 +390,21 @@ export function AdminSidebar({
         <NavGroup
           icon={FileText}
           label="CMS"
-          hasActiveChild={["faqs", "legal-pages", "banners"].includes(activeView)}
+          hasActiveChild={["faqs", "shop-benefits", "legal-pages", "banners"].includes(activeView)}
         >
           {item(ClipboardList, "FAQs", "faqs", true)}
+          {item(HeartHandshake, "Why Shop", "shop-benefits", true)}
           {item(FileText, "Legal Pages", "legal-pages", true)}
           {item(Layers3, "Banners", "banners", true)}
         </NavGroup>
       </nav>
 
-      <div className="p-3 border-t border-slate-100 flex items-center justify-between gap-3 bg-slate-50/60 flex-shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-8 h-8 rounded-full bg-orange-100 text-orange-800 font-bold text-xs flex items-center justify-center flex-shrink-0">
+      <div className="p-3.5 border-t border-slate-100 flex items-center justify-between gap-3 bg-slate-50/70 flex-shrink-0 w-full overflow-hidden">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span className="w-8 h-8 rounded-full bg-orange-100 text-orange-800 font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
             {initials}
           </span>
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 flex-1">
             <span className="text-xs font-semibold text-slate-900 truncate leading-tight">
               {user.name}
             </span>
@@ -417,7 +414,7 @@ export function AdminSidebar({
           </div>
         </div>
         <button
-          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 flex-shrink-0 bg-transparent"
+          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 flex-shrink-0 bg-transparent cursor-pointer"
           type="button"
           aria-label="Sign out"
           title="Sign out"

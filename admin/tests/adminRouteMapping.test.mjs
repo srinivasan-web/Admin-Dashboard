@@ -19,7 +19,7 @@ const routes = await import(
 
 test("every admin view has one stable canonical route", () => {
   const entries = Object.entries(routes.adminViewPaths);
-  assert.equal(entries.length, 22);
+  assert.equal(entries.length, 23);
   assert.equal(new Set(entries.map(([, path]) => path)).size, entries.length);
   for (const [view, path] of entries) {
     assert.equal(routes.adminViewFromPath(path), view);

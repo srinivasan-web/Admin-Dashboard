@@ -37,6 +37,8 @@ export function AdminShell({
     "orders",
     "abandoned-orders",
     "banners",
+    "faqs",
+    "shop-benefits",
   ].includes(activeView);
 
   return (
@@ -68,7 +70,7 @@ export function AdminShell({
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="lg:pl-[230px] flex flex-col min-h-screen min-w-0 w-full">
+      <div className="lg:pl-[260px] flex flex-col min-h-screen min-w-0 w-full">
         {/* Mobile menu trigger */}
         <div className="lg:hidden p-4 pb-0 flex items-center">
           <button
@@ -82,7 +84,7 @@ export function AdminShell({
         </div>
 
         {/* Content Body: fluid full-page width coverage with balanced padding */}
-        <section className="admin-content flex-1 p-6 sm:p-8 w-full min-w-0">
+        <section className="admin-content flex-1 p-6 sm:p-8 lg:p-8 xl:p-10 w-full min-w-0">
           {children}
         </section>
       </div>

@@ -18,7 +18,7 @@ class ProductTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Products include only PDF-supported attributes and the approved support fields.
+     * Products include the approved storefront presentation metadata.
      */
     public function test_products_table_has_the_approved_columns(): void
     {
@@ -27,9 +27,9 @@ class ProductTest extends TestCase
             'id', 'brand_id', 'category_id', 'product_type_id', 'hsn_code_id',
             'name', 'group_name', 'sku', 'mrp_price', 'sale_price', 'tag',
             'sort_order', 'is_active', 'is_trade_product', 'description',
+            'slug', 'short_description',
             'created_at', 'updated_at', 'deleted_at',
         ]));
-        $this->assertFalse(Schema::hasColumn('products', 'slug'));
         $this->assertFalse(Schema::hasColumn('products', 'cost_price'));
         $this->assertFalse(Schema::hasColumn('products', 'tax_rate'));
     }

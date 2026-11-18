@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { acquireCatalogRequest, CatalogError } from "./catalogClient";
+export { catalogRequest, CatalogError } from "./catalogClient";
 
 export type Category = {
   id: string;
@@ -11,6 +13,8 @@ export type Category = {
 export type ProductType = Category;
 export type PublicBanner = {
   id: string;
+  category_id: string | null;
+  product_type_id: string | null;
   title: string;
   description: string | null;
   desktop_image_url: string;
@@ -26,7 +30,7 @@ export type PublicBanner = {
 };
 export type Specification = {
   id: string;
-  attribute: { id: string; name: string; unit: string | null };
+  attribute: { id: string; name: string; slug?: string; icon?: string | null; unit: string | null };
   value: string;
   sort_order: number;
 };
@@ -34,6 +38,7 @@ export type Product = {
   id: string;
   name: string;
   sku: string;
+  slug?: string | null;
   description: string | null;
   short_description?: string | null;
   details?: Array<{
@@ -52,13 +57,30 @@ export type Product = {
     marketed_by: string | null;
     consumer_complaints: string | null;
   } | null;
+  benefits?: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    benefit_type: string;
+    sort_order: number;
+    is_active: boolean;
+    icon_url: string | null;
+  }>;
   tag: string | null;
   available_stock: number;
   price: { currency: string; mrp: string; sale: string | null };
   category: Category;
   product_type: Category;
-  brand?: Category;
-  images: Array<{ id: string; url: string; is_primary: boolean }>;
+  brand?: Category | null;
+  images: Array<{
+    id: string;
+    url: string;
+    type?: string;
+    is_primary: boolean;
+    alt_text?: string | null;
+    sort_order?: number;
+  }>;
+  has_360_view?: boolean;
   specifications: Specification[];
   highlights: Array<{
     id: string;
@@ -68,6 +90,12 @@ export type Product = {
   }>;
 };
 export type Collection<T> = { data: T[] };
+export type ProductComparison = {
+  data: {
+    attributes: Array<{ id: string; name: string; unit: string | null }>;
+    products: Array<Pick<Product, "id" | "name" | "price" | "images" | "specifications">>;
+  };
+};
 export type ProductPage = Collection<Product> & {
   meta: {
     current_page: number;
@@ -83,53 +111,60 @@ export type CatalogFilter = {
   unit: string | null;
   values: string[];
 };
-
-export class CatalogError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-export async function catalogRequest<T>(
-  path: string,
-  signal?: AbortSignal,
-): Promise<T> {
-  const response = await fetch(`/api/v1${path}`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  if (!response.ok) {
-    throw new CatalogError(
-      response.status,
-      response.status === 404
-        ? "This product is no longer available. Explore the catalog to find an alternative."
-        : "We couldn't load this information. Please try again.",
-    );
-  }
-  return response.json() as Promise<T>;
-}
+export type CategoryFaq = {
+  id: string;
+  category_id: string | null;
+  question: string;
+  answer: string;
+  sort_order: number;
+  is_active: boolean;
+};
+export type ShopBenefit = {
+  id: string;
+  title: string;
+  description: string | null;
+  icon_url: string | null;
+  sort_order: number;
+};
+export type ProductOffer = {
+  id: string;
+  scope_type: "product" | "category" | "product_type";
+  title: string;
+  description: string | null;
+  offer_type: "coupon" | "promotion";
+  coupon_code: string | null;
+  discount_type: "percent" | "fixed" | null;
+  discount_value: string | null;
+  maximum_discount: string | null;
+  minimum_order_amount: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  sort_order: number;
+};
 
 // Each section owns its request: a failed collection cannot hide the whole page.
-export function useCatalogResource<T>(path: string | null) {
+export function useCatalogResource<T>(path: string | null, { refreshOnFocus = false } = {}) {
   const [state, setState] = useState<{
     path: string | null;
     data?: T;
     error?: Error;
+    refreshing?: boolean;
   }>({ path: null });
   const [revision, setRevision] = useState(0);
+  const retry = useCallback(() => setRevision((value) => value + 1), []);
   useEffect(() => {
     if (!path) return;
-    const controller = new AbortController();
-    setState({ path });
-    void catalogRequest<T>(path, controller.signal)
+    let active = true;
+    const request = acquireCatalogRequest<T>(path);
+    setState((current) => refreshOnFocus && current.path === path && current.data !== undefined
+      ? { path, data: current.data, refreshing: true }
+      : { path, refreshing: true });
+    void request.promise
       .then((data) => {
-        if (!controller.signal.aborted) setState({ path, data });
+        if (active) setState({ path, data });
       })
       .catch((reason: unknown) => {
-        if (!controller.signal.aborted)
+        if (active)
           setState({
             path,
             error:
@@ -140,13 +175,40 @@ export function useCatalogResource<T>(path: string | null) {
                   ),
           });
       });
-    return () => controller.abort();
-  }, [path, revision]);
+    return () => {
+      active = false;
+      request.release();
+    };
+  }, [path, revision, refreshOnFocus]);
+  useEffect(() => {
+    if (!refreshOnFocus || !path) return;
+    let lastRefresh = 0;
+    const refresh = () => {
+      const now = Date.now();
+      if (!document.hidden && now - lastRefresh >= 1000) {
+        lastRefresh = now;
+        retry();
+      }
+    };
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [path, refreshOnFocus, retry]);
   return {
     data: state.path === path ? state.data : undefined,
     error: state.path === path ? state.error : undefined,
-    retry: () => setRevision((value) => value + 1),
+    refreshing: state.path === path && Boolean(state.refreshing),
+    retry,
   };
+}
+
+export function productHref(product: Pick<Product, "id" | "slug">) {
+  return `/products/${encodeURIComponent(product.slug?.trim() || product.id)}`;
 }
 
 export function specificationValue(specification: Specification) {

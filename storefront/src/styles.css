@@ -67,16 +67,16 @@
     @apply text-[#ced6df];
   }
   .store-header {
-    @apply sticky top-0 z-30 border-b border-nav-line bg-white/97 backdrop-blur-sm;
+    @apply sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[0_4px_20px_-2px_rgba(7,26,43,0.06),0_2px_4px_-1px_rgba(7,26,43,0.03)] transition-all duration-300;
   }
   .global-header-main {
-    @apply relative mx-auto flex min-h-[75px] max-w-[1320px] items-center gap-5;
+    @apply relative mx-auto flex h-[72px] max-w-[1320px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8;
   }
   .brand-logo {
-    @apply inline-flex shrink-0 items-center rounded-sm;
+    @apply inline-flex shrink-0 items-center transition-opacity duration-150 hover:opacity-90;
   }
   .brand-logo img {
-    @apply h-auto w-[160px] object-contain;
+    @apply h-auto w-[150px] sm:w-[165px] object-contain;
   }
   .desktop-equipment {
     @apply shrink-0;
@@ -131,35 +131,37 @@
     @apply mt-auto pt-7 text-navy;
   }
   .desktop-search {
-    @apply min-w-[180px] flex-1;
+    @apply flex-1 max-w-[580px] mx-2 lg:mx-6;
   }
   .nav-search {
-    @apply flex min-h-12 min-w-0 items-center rounded-md border border-nav-line bg-surface transition-[border-color,box-shadow] duration-200 focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15;
+    @apply relative flex h-11 w-full items-center rounded-xl border border-slate-200/90 bg-slate-50/80 shadow-2xs transition-all duration-200 hover:border-slate-300 hover:bg-slate-100/60 focus-within:border-accent focus-within:bg-white focus-within:ring-4 focus-within:ring-accent/15 focus-within:shadow-xs;
   }
   .nav-search input {
-    @apply min-w-0 flex-1 border-0 bg-transparent px-4 py-3 text-[13px] text-navy outline-none placeholder:text-nav-muted;
+    @apply min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[13px] font-medium text-navy placeholder:text-slate-400 focus:outline-none;
   }
   .nav-search input::-webkit-search-cancel-button {
     @apply hidden;
   }
-  .nav-search-clear,
-  .nav-search-submit {
-    @apply grid size-11 shrink-0 place-items-center rounded-md text-navy transition-colors duration-200 hover:bg-warm hover:text-accent-deep;
+  .nav-search-clear {
+    @apply grid size-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-200/60 hover:text-navy mr-1 cursor-pointer;
   }
   .nav-search-submit {
-    @apply mr-1 bg-navy text-white hover:bg-navy-soft hover:text-white;
+    @apply mr-1.5 grid size-8 place-items-center rounded-lg bg-navy text-white transition-all duration-150 hover:bg-navy-soft active:scale-95 shadow-2xs cursor-pointer;
   }
   .header-utility {
-    @apply flex shrink-0 items-center gap-0.5;
+    @apply flex shrink-0 items-center gap-1 sm:gap-1.5;
   }
   .header-link {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-2.5 text-[12px] font-medium text-navy transition-colors duration-200 hover:bg-warm hover:text-accent-deep;
+    @apply inline-flex h-9.5 items-center justify-center gap-2 rounded-lg px-2.5 sm:px-3 text-[13px] font-semibold text-slate-700 transition-all duration-150 hover:bg-slate-100/90 hover:text-navy active:bg-slate-200/60;
   }
   .header-link svg {
-    @apply shrink-0;
+    @apply shrink-0 text-slate-500 transition-colors;
+  }
+  .header-link:hover svg {
+    @apply text-navy;
   }
   .header-link-compact {
-    @apply size-11 p-0;
+    @apply size-9.5 p-0;
   }
   .category-navigation {
     @apply border-t border-nav-line;
@@ -645,7 +647,7 @@
     @apply min-w-0;
   }
   .catalog-results > .product-grid {
-    @apply grid-cols-3 gap-5;
+    @apply grid-cols-4 gap-4;
   }
   .catalog-filter-panel {
     @apply sticky top-[125px] max-h-[calc(100vh-145px)] overflow-y-auto rounded-xl border border-line bg-white px-4 py-5;
@@ -836,7 +838,7 @@
       @apply hidden;
     }
     .header-utility .header-link {
-      @apply size-11 p-0;
+      @apply size-9.5 p-0;
     }
     .category-navigation-inner {
       @apply gap-5;
@@ -896,7 +898,7 @@
       @apply ml-auto flex items-center gap-1;
     }
     .mobile-search-panel {
-      @apply block border-t border-nav-line px-6 py-3;
+      @apply block border-t border-slate-200/80 bg-white/95 backdrop-blur-md px-6 py-3;
     }
     .mobile-nav-backdrop {
       @apply fixed inset-0 z-50 flex;

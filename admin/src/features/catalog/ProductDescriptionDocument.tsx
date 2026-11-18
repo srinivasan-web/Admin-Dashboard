@@ -333,7 +333,7 @@ export default function ProductDescriptionDocument({
           </button>
         ))}
         <span className="description-edit-status">
-          {dirty ? "Unsaved changes" : "Ready to edit"}
+          {dirty ? "Unsaved changes" : ""}
         </span>
       </div>
       <div

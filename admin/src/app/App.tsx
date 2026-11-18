@@ -7,6 +7,8 @@ import { InventoryPage } from "../features/catalog/InventoryPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
 import { BannersPage } from "../features/banners/BannersPage";
+import { FaqsPage } from "../features/faqs/FaqsPage";
+import { ShopBenefitsPage } from "../features/faqs/ShopBenefitsPage";
 import { OrdersPage } from "../features/orders";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminShell } from "./AdminShell";
@@ -335,10 +337,14 @@ export function App() {
             onList={() => openBanner("list")}
           />
         )}
+        {activeView === "faqs" && <FaqsPage canManage={(user.permissions ?? []).includes("catalog.manage")} />}
+        {activeView === "shop-benefits" && <ShopBenefitsPage canManage={(user.permissions ?? []).includes("catalog.manage")} />}
         {activeView !== "dashboard" &&
           activeView !== "orders" &&
           activeView !== "abandoned-orders" &&
           activeView !== "banners" &&
+          activeView !== "faqs" &&
+          activeView !== "shop-benefits" &&
           activeView !== "stock" &&
           !catalogViews.includes(
             activeView as (typeof catalogViews)[number],

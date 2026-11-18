@@ -1,4 +1,15 @@
 import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  Tag,
+  Hash,
+  AlignLeft,
+  SlidersHorizontal,
+  Filter,
+  CheckCircle2,
+  RefreshCw,
+  ChevronLeft,
+  Plus,
+} from "lucide-react";
 import { ApiError, errorMessage } from "../../api/client";
 import { saveAttribute } from "./catalogApi";
 import type { CatalogAttribute } from "./types";
@@ -48,8 +59,8 @@ export function AttributeForm({
     key: K,
     value: AttributeFields[K],
   ) {
-    setFields((previous) => ({ ...previous, [key]: value }));
-    setErrors((previous) => ({ ...previous, [key]: "" }));
+    setFields((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: "" }));
     setDirty(true);
   }
 
@@ -110,177 +121,258 @@ export function AttributeForm({
     }
   }
 
-  const inputClass =
-    "h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-slate-50";
-  const field = (
+  const input =
+    "h-10 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 disabled:cursor-not-allowed disabled:opacity-60 transition";
+
+  function field(
     key: keyof AttributeFields,
     label: string,
-    input: ReactNode,
-  ) => (
-    <div className="flex min-w-0 flex-col gap-1.5" key={key}>
-      <label
-        htmlFor={`attribute-${key}`}
-        className="text-sm font-medium text-slate-700"
-      >
-        {label}
-      </label>
-      {input}
-      {errors[key] && (
-        <p role="alert" className="text-xs text-red-600">
-          {errors[key]}
-        </p>
-      )}
-    </div>
-  );
+    element: ReactNode,
+    hint?: string,
+  ) {
+    return (
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <label
+          htmlFor={`attribute-${key}`}
+          className="text-xs font-semibold text-slate-700"
+        >
+          {label}
+        </label>
+        {element}
+        {hint && !errors[key] && (
+          <p className="text-xs text-slate-400">{hint}</p>
+        )}
+        {errors[key] && (
+          <p role="alert" className="text-xs font-medium text-red-600">
+            {errors[key]}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <form
-      onSubmit={submit}
-      noValidate
-      className="space-y-5 rounded-xl border border-slate-200 bg-white p-4 sm:p-6"
-    >
-      <div>
-        <h3 className="m-0 text-base font-semibold text-slate-900">
-          {selected ? "Edit attribute" : "Add attribute"}
-        </h3>
-      
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {field(
-          "name",
-          "Name *",
-          <input
-            id="attribute-name"
-            className={inputClass}
-            value={fields.name}
-            maxLength={255}
-            required
-            onChange={(event) => change("name", event.target.value)}
-            disabled={saving}
-          />,
-        )}
-        {field(
-          "slug",
-          "Slug (optional)",
-          <input
-            id="attribute-slug"
-            className={inputClass}
-            value={fields.slug}
-            maxLength={255}
-            placeholder="Generated from name when blank"
-            onChange={(event) => change("slug", event.target.value)}
-            disabled={saving}
-          />,
-        )}
-        {field(
-          "data_type",
-          "Data type *",
-          <select
-            id="attribute-data_type"
-            className={inputClass}
-            value={fields.data_type}
-            required
-            onChange={(event) => change("data_type", event.target.value)}
-            disabled={saving}
-          >
-            <option value="text">Text</option>
-            <option value="number">Number</option>
-            <option value="boolean">Boolean (true / false)</option>
-            {selected &&
-              !["text", "number", "boolean"].includes(selected.data_type) && (
-                <option value={selected.data_type}>
-                  {selected.data_type} (existing legacy type)
-                </option>
-              )}
-          </select>,
-        )}
-        {field(
-          "unit",
-          "Unit (optional)",
-          <input
-            id="attribute-unit"
-            className={inputClass}
-            value={fields.unit}
-            maxLength={50}
-            placeholder="e.g. kg"
-            onChange={(event) => change("unit", event.target.value)}
-            disabled={saving}
-          />,
-        )}
-        {field(
-          "icon",
-          "Icon (optional)",
-          <input
-            id="attribute-icon"
-            className={inputClass}
-            value={fields.icon}
-            maxLength={255}
-            onChange={(event) => change("icon", event.target.value)}
-            disabled={saving}
-          />,
-        )}
-        {field(
-          "sort_order",
-          "Sort order",
-          <input
-            id="attribute-sort_order"
-            type="number"
-            min="0"
-            step="1"
-            className={inputClass}
-            value={fields.sort_order}
-            onChange={(event) => change("sort_order", event.target.value)}
-            disabled={saving}
-          />,
-        )}
-      </div>
-      {field(
-        "description",
-        "Description (optional)",
-        <textarea
-          id="attribute-description"
-          className={`${inputClass} min-h-24 py-3`}
-          value={fields.description}
-          onChange={(event) => change("description", event.target.value)}
-          disabled={saving}
-        />,
-      )}
-      <div className="flex flex-wrap gap-5">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={fields.is_filterable}
-            onChange={(event) => change("is_filterable", event.target.checked)}
-            disabled={saving}
-          />{" "}
-          Filterable
-        </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={fields.is_active}
-            onChange={(event) => change("is_active", event.target.checked)}
-            disabled={saving}
-          />{" "}
-          Active
-        </label>
-      </div>
-      {error && (
-        <p role="alert" className="text-sm text-red-700">
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+    <form onSubmit={submit} noValidate className="space-y-0">
+      {/* Form header */}
+      <div className="mb-5 flex items-center gap-3">
         <button
           type="button"
-          className="secondary"
           onClick={cancel}
           disabled={saving}
+          className="attr-btn-icon"
+          aria-label="Back to list"
+          title="Back to list"
+        >
+          <ChevronLeft size={18} className="text-slate-600" aria-hidden="true" />
+        </button>
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">
+            {selected ? "Edit attribute" : "Add attribute"}
+          </h3>
+        </div>
+      </div>
+
+      {/* Global error */}
+      {error && (
+        <div
+          role="alert"
+          className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-700"
+        >
+          {error}
+        </div>
+      )}
+
+      {/* ── Identity fields ── */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
+          <Tag size={13} className="text-slate-500" aria-hidden="true" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Identity
+          </span>
+        </div>
+        <div className="grid gap-4 p-4 sm:grid-cols-2">
+          {field(
+            "name",
+            "Name *",
+            <input
+              id="attribute-name"
+              className={`${input} ${errors.name ? "border-red-300 focus:border-red-400 focus:ring-red-100" : ""}`}
+              value={fields.name}
+              maxLength={255}
+              required
+              autoFocus
+              onChange={(e) => change("name", e.target.value)}
+              disabled={saving}
+            />,
+          )}
+          {field(
+            "slug",
+            "Slug (optional)",
+            <input
+              id="attribute-slug"
+              className={input}
+              value={fields.slug}
+              maxLength={255}
+              placeholder="Generated from name"
+              onChange={(e) => change("slug", e.target.value)}
+              disabled={saving}
+            />,
+          )}
+        </div>
+      </div>
+
+      {/* ── Data type ── */}
+      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
+          <Hash size={13} className="text-slate-500" aria-hidden="true" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Data type
+          </span>
+        </div>
+        <div className="grid gap-4 p-4 sm:grid-cols-2">
+          {field(
+            "data_type",
+            "Data type *",
+            <select
+              id="attribute-data_type"
+              className={`${input} ${errors.data_type ? "border-red-300" : ""}`}
+              value={fields.data_type}
+              required
+              onChange={(e) => change("data_type", e.target.value)}
+              disabled={saving}
+            >
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="boolean">Boolean (true / false)</option>
+              {selected &&
+                !["text", "number", "boolean"].includes(selected.data_type) && (
+                  <option value={selected.data_type}>
+                    {selected.data_type} (existing)
+                  </option>
+                )}
+            </select>,
+          )}
+          {field(
+            "unit",
+            "Unit (optional)",
+            <input
+              id="attribute-unit"
+              className={input}
+              value={fields.unit}
+              maxLength={50}
+              placeholder="e.g. kg, km/h, W"
+              onChange={(e) => change("unit", e.target.value)}
+              disabled={saving}
+            />,
+          )}
+          {field(
+            "icon",
+            "Icon (optional)",
+            <input
+              id="attribute-icon"
+              className={input}
+              value={fields.icon}
+              maxLength={255}
+              placeholder="Icon name or class"
+              onChange={(e) => change("icon", e.target.value)}
+              disabled={saving}
+            />,
+          )}
+          {field(
+            "sort_order",
+            "Sort order",
+            <input
+              id="attribute-sort_order"
+              type="number"
+              min="0"
+              step="1"
+              className={`${input} ${errors.sort_order ? "border-red-300" : ""}`}
+              value={fields.sort_order}
+              onChange={(e) => change("sort_order", e.target.value)}
+              disabled={saving}
+            />,
+          )}
+        </div>
+      </div>
+
+    
+      {/* ── Flags ── */}
+      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
+          <SlidersHorizontal
+            size={13}
+            className="text-slate-500"
+            aria-hidden="true"
+          />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Behaviour
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-4 p-4">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 transition hover:border-orange-200 hover:bg-orange-50/30">
+            <input
+              type="checkbox"
+              checked={fields.is_filterable}
+              onChange={(e) => change("is_filterable", e.target.checked)}
+              disabled={saving}
+              className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-200"
+            />
+            <div>
+              <p className="text-xs font-semibold text-slate-800">Filterable</p>
+            </div>
+            <Filter size={14} className="ml-auto text-slate-400" />
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 transition hover:border-emerald-200 hover:bg-emerald-50/30">
+            <input
+              type="checkbox"
+              checked={fields.is_active}
+              onChange={(e) => change("is_active", e.target.checked)}
+              disabled={saving}
+              className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-200"
+            />
+            <div>
+              <p className="text-xs font-semibold text-slate-800">Active</p>
+            </div>
+            <CheckCircle2 size={14} className="ml-auto text-slate-400" />
+          </label>
+        </div>
+      </div>
+
+      {/* ── Actions ── */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
+        <button
+          type="button"
+          onClick={cancel}
+          disabled={saving}
+          className="attr-btn-action border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
         >
           Cancel
         </button>
-        <button type="submit" className="primary" disabled={saving}>
-          {saving ? "Saving…" : selected ? "Save changes" : "Add attribute"}
+        <button
+          type="submit"
+          disabled={saving}
+          className="attr-btn-primary"
+        >
+          {saving ? (
+            <>
+              <RefreshCw
+                size={14}
+                className="animate-spin"
+                aria-hidden="true"
+              />
+              <span>Saving…</span>
+            </>
+          ) : selected ? (
+            <>
+              <CheckCircle2 size={15} aria-hidden="true" />
+              <span>Save changes</span>
+            </>
+          ) : (
+            <>
+              <Plus size={15} aria-hidden="true" />
+              <span>Add attribute</span>
+            </>
+          )}
         </button>
       </div>
     </form>

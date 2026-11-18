@@ -34,6 +34,8 @@ export type Banner = {
   desktop_media: BannerMedia;
   mobile_media: BannerMedia;
   page: string | null;
+  category_id: string | null;
+  product_type_id: string | null;
   sort_order: number;
   redirect_url: string | null;
   start_at: string | null;
@@ -50,6 +52,8 @@ export type BannerInput = {
   desktop_media_id: string;
   mobile_media_id: string;
   page: string;
+  category_id: string | null;
+  product_type_id: string | null;
   sort_order: number;
   redirect_url: string | null;
   start_at: string | null;

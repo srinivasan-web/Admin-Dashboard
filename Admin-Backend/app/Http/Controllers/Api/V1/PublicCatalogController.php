@@ -7,24 +7,29 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicProductsRequest;
 use App\Http\Resources\CatalogMasterResource;
 use App\Http\Resources\ProductResource;
+use App\Http\Resources\ProductOfferResource;
+use App\Http\Resources\ProductComparisonResource;
 use App\Models\Attribute;
 use App\Models\Category;
 use App\Models\MerchandisingSection;
 use App\Models\Product;
+use App\Models\ProductOffer;
 use App\Models\ProductAttribute;
 use App\Models\ProductType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Str;
 
 class PublicCatalogController extends Controller
 {
     private const EFFECTIVE_PRICE_SQL = 'CAST(COALESCE(sale_price, mrp_price) AS DECIMAL(12, 2))';
 
-    public function merchandising(string $placement): AnonymousResourceCollection
+    public function merchandising(Request $request, string $placement): AnonymousResourceCollection
     {
         abort_unless(in_array($placement, ['featured', 'bestsellers'], true), 404);
+        $limit = $request->validate(['limit' => ['sometimes', 'integer', 'min:1', 'max:12']])['limit'] ?? null;
         $section = MerchandisingSection::query()->where('slug', $placement)->where('is_active', true)->first();
         $products = $section?->products()
             ->wherePivot('is_active', true)
@@ -32,10 +37,13 @@ class PublicCatalogController extends Controller
             ->whereHas('category', fn (Builder $query) => $query->where('is_active', true))
             ->whereHas('productType', fn (Builder $query) => $query->where('is_active', true))
             ->whereHas('warehouseStocks', fn (Builder $query) => $query->whereColumn('quantity', '>', 'reserved_quantity'))
-            ->with(['brand', 'category', 'productType', 'images.media', 'productAttributes.attribute', 'highlights.productAttribute.attribute'])
+            ->with(['brand', 'category', 'productType', 'images' => fn ($query) => $query->where('type', '!=', '360_frame'), 'images.media', 'productAttributes.attribute', 'highlights.productAttribute.attribute'])
+            ->withCount(['images as rotation_frame_count' => fn ($query) => $query->where('type', '360_frame')])
             ->withSum('warehouseStocks', 'quantity')
             ->withSum('warehouseStocks', 'reserved_quantity')
-            ->orderByPivot('sort_order')->orderBy('products.name')->get();
+            ->orderByPivot('sort_order')->orderBy('products.name')
+            ->when($limit, fn (Builder $query) => $query->limit($limit))
+            ->get();
 
         return ProductResource::collection($products ?? collect());
     }
@@ -61,7 +69,8 @@ class PublicCatalogController extends Controller
             ->when($validated['q'] ?? null, fn (Builder $query, string $search) => $query->where(function (Builder $query) use ($search): void {
                 $query->where('name', 'like', '%'.$search.'%')->orWhere('sku', 'like', '%'.$search.'%');
             }))
-            ->with(['brand', 'category', 'productType', 'images.media', 'productAttributes.attribute', 'highlights.productAttribute.attribute'])
+            ->with(['brand', 'category', 'productType', 'images' => fn ($query) => $query->where('type', '!=', '360_frame'), 'images.media', 'productAttributes.attribute', 'highlights.productAttribute.attribute'])
+            ->withCount(['images as rotation_frame_count' => fn ($query) => $query->where('type', '360_frame')])
             ->withSum('warehouseStocks', 'quantity');
         $products->withSum('warehouseStocks', 'reserved_quantity');
         foreach ($validated['attributes'] ?? [] as $attributeId => $values) {
@@ -88,29 +97,86 @@ class PublicCatalogController extends Controller
         return ProductResource::collection($products->paginate(24)->withQueryString());
     }
 
-    public function product(Product $product): ProductResource
+    public function product(string $product): ProductResource
     {
+        $product = $this->resolvePublicProduct($product);
         $product->loadMissing(['brand', 'category', 'productType']);
 
         abort_unless(
             $product->is_active
-            && $product->category->is_active
-            && $product->productType->is_active
+            && $product->category?->is_active
+            && $product->productType?->is_active
             && $product->warehouseStocks()->whereColumn('quantity', '>', 'reserved_quantity')->exists(),
             404,
         );
 
-        return new ProductResource($product
-            ->loadMissing(['images.media', 'productAttributes.attribute', 'highlights.productAttribute.attribute', 'details', 'additionalDetails'])
+        $product
+            ->loadMissing([
+                'images' => fn ($query) => $query
+                    ->select(['id', 'product_id', 'media_id', 'type', 'sort_order', 'is_primary', 'alt_text'])
+                    ->orderBy('sort_order')->orderBy('id'),
+                'images.media:id,disk,path',
+                'productAttributes' => fn ($query) => $query
+                    ->select(['id', 'product_id', 'attribute_id', 'value', 'sort_order', 'show_on_top'])
+                    ->whereHas('attribute', fn (Builder $attribute) => $attribute->where('is_active', true))
+                    ->orderBy('sort_order')->orderBy('id'),
+                'productAttributes.attribute:id,name,slug,icon,description,data_type,unit,is_filterable,is_active,sort_order',
+                'highlights' => fn ($query) => $query
+                    ->select(['id', 'product_id', 'product_attribute_id', 'sort_order', 'is_active'])
+                    ->where('is_active', true)->orderBy('sort_order')->orderBy('id'),
+                'details' => fn ($query) => $query
+                    ->select(['id', 'product_id', 'title', 'content', 'sort_order', 'is_active'])
+                    ->where('is_active', true)->orderBy('sort_order')->orderBy('id'),
+                'additionalDetails:id,product_id,generic_name,model_number,net_quantity,country_of_origin,manufactured_by,marketed_by,consumer_complaints',
+                'benefits' => fn ($query) => $query
+                    ->select(['id', 'product_id', 'icon_media_id', 'title', 'description', 'benefit_type', 'sort_order', 'is_active'])
+                    ->where('is_active', true)->orderBy('sort_order')->orderBy('id'),
+                'benefits.iconMedia:id,disk,path',
+            ])
             ->loadSum('warehouseStocks', 'quantity')
-            ->loadSum('warehouseStocks', 'reserved_quantity'));
+            ->loadSum('warehouseStocks', 'reserved_quantity');
+
+        // Highlights reference this product's specifications; never reload or copy values.
+        // An invalid/cross-product reference resolves to null and is excluded by the resource.
+        $specifications = $product->productAttributes->keyBy('id');
+        foreach ($product->highlights as $highlight) {
+            $highlight->setRelation('productAttribute', $specifications->get($highlight->product_attribute_id));
+        }
+
+        return new ProductResource($product);
     }
 
-    public function buyItWith(Product $product): AnonymousResourceCollection
+    public function offers(string $product): AnonymousResourceCollection
     {
+        $product = $this->resolvePublicProduct($product);
+        $product->loadMissing(['category', 'productType']);
         abort_unless($product->is_active
-            && $product->category->is_active
-            && $product->productType->is_active
+            && $product->category?->is_active
+            && $product->productType?->is_active
+            && $product->warehouseStocks()->whereColumn('quantity', '>', 'reserved_quantity')->exists(), 404);
+
+        $now = now();
+        $offers = ProductOffer::query()
+            ->where('is_active', true)
+            ->where(fn (Builder $query) => $query
+                ->where(fn (Builder $scope) => $scope->where('scope_type', 'product')->where('product_id', $product->id))
+                ->orWhere(fn (Builder $scope) => $scope->where('scope_type', 'category')->where('category_id', $product->category_id))
+                ->orWhere(fn (Builder $scope) => $scope->where('scope_type', 'product_type')->where('product_type_id', $product->product_type_id)))
+            ->where(fn (Builder $query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', $now))
+            ->where(fn (Builder $query) => $query->whereNull('ends_at')->orWhere('ends_at', '>=', $now))
+            ->orderBy('sort_order')->orderBy('id')->limit(20)->get();
+
+        // No related models are serialized, so this bounded read has no N+1 queries.
+        return ProductOfferResource::collection($offers);
+    }
+
+    public function buyItWith(string $product): AnonymousResourceCollection
+    {
+        $product = $this->resolvePublicProduct($product);
+        $product->loadMissing(['category', 'productType']);
+        abort_unless($product->is_active
+            && $product->category?->is_active
+            && $product->productType?->is_active
             && $product->warehouseStocks()->whereColumn('quantity', '>', 'reserved_quantity')->exists(), 404);
 
         $comboIds = $product->combos()->where('combos.is_active', true)->pluck('combos.id');
@@ -125,12 +191,109 @@ class PublicCatalogController extends Controller
             ->whereHas('category', fn (Builder $query) => $query->where('is_active', true))
             ->whereHas('productType', fn (Builder $query) => $query->where('is_active', true))
             ->whereHas('warehouseStocks', fn (Builder $query) => $query->whereColumn('quantity', '>', 'reserved_quantity'))
-            ->with(['brand', 'category', 'productType', 'images.media', 'productAttributes.attribute', 'highlights.productAttribute.attribute'])
+            ->with(['brand', 'category', 'productType', 'images' => fn ($query) => $query->where('type', '!=', '360_frame'), 'images.media', 'productAttributes.attribute', 'highlights.productAttribute.attribute'])
+            ->withCount(['images as rotation_frame_count' => fn ($query) => $query->where('type', '360_frame')])
             ->withSum('warehouseStocks', 'quantity')
             ->withSum('warehouseStocks', 'reserved_quantity')
             ->orderBy('name')->get();
 
         return ProductResource::collection($related);
+    }
+
+    public function comparison(string $product): JsonResponse
+    {
+        $product = $this->resolvePublicProduct($product);
+        $product->loadMissing(['category', 'productType']);
+        abort_unless($product->is_active && $product->category?->is_active
+            && $product->productType?->is_active
+            && $product->warehouseStocks()->whereColumn('quantity', '>', 'reserved_quantity')->exists(), 404);
+
+        // Category configuration chooses the rows; values stay in product_attributes.
+        $configuration = $product->category->specifications()
+            ->where('is_active', true)->where('is_comparable', true)
+            ->whereHas('attribute', fn (Builder $query) => $query->where('is_active', true))
+            ->with('attribute:id,name,unit')
+            ->orderBy('sort_order')->orderBy('id')
+            ->limit(24)
+            ->get(['id', 'category_id', 'attribute_id', 'label', 'sort_order']);
+
+        // An admin can deliberately disable comparison by saving no comparable rows.
+        // Only a category with no configuration at all uses its saved product values.
+        $useSavedSpecifications = $configuration->isEmpty()
+            && ! $product->category->specifications()->exists();
+        if ($configuration->isEmpty() && ! $useSavedSpecifications) {
+            return response()->json(['data' => ['attributes' => [], 'products' => []]]);
+        }
+
+        $products = Product::query()
+            ->whereKeyNot($product->id)
+            ->where('category_id', $product->category_id)
+            ->where('product_type_id', $product->product_type_id)
+            ->where('is_active', true)
+            ->whereHas('warehouseStocks', fn (Builder $query) => $query->whereColumn('quantity', '>', 'reserved_quantity'))
+            ->orderBy('sort_order')->orderBy('name')->orderBy('id')
+            ->limit(3)->get(['id', 'name', 'mrp_price', 'sale_price'])
+            ->prepend($product);
+
+        $attributes = $configuration->map(fn ($row) => [
+            'id' => $row->attribute_id,
+            'name' => trim($row->label ?? '') ?: $row->attribute->name,
+            'unit' => $row->attribute->unit,
+        ]);
+        if ($useSavedSpecifications) {
+            $savedValues = fn ($ids) => ProductAttribute::query()
+                ->whereIn('product_id', $ids)
+                ->whereHas('attribute', fn (Builder $query) => $query->where('is_active', true))
+                ->with('attribute:id,name,unit,data_type,is_active')
+                ->orderBy('sort_order')->orderBy('id')->limit(48)->get()
+                ->filter(fn (ProductAttribute $specification) => SpecificationValue::valid(
+                    $specification->attribute->data_type, $specification->value,
+                ))
+                ->unique('attribute_id')->take(24);
+            $saved = $savedValues([$product->id]);
+            if ($saved->isEmpty()) {
+                $saved = $savedValues($products->skip(1)->pluck('id'));
+            }
+            $attributes = $saved->map(fn (ProductAttribute $specification) => [
+                'id' => $specification->attribute_id,
+                'name' => $specification->attribute->name,
+                'unit' => $specification->attribute->unit,
+            ])->values();
+        }
+        if ($attributes->isEmpty()) {
+            return response()->json(['data' => ['attributes' => [], 'products' => []]]);
+        }
+
+        $attributeIds = $attributes->pluck('id');
+
+        // Keep the source first without a CASE sort over all eligible products.
+        $products->load([
+                'images' => fn ($query) => $query
+                    ->select(['id', 'product_id', 'media_id', 'is_primary', 'alt_text', 'sort_order'])
+                    ->where('type', '!=', '360_frame')
+                    ->orderByDesc('is_primary')->orderBy('sort_order')->orderBy('id')->limit(1),
+                'images.media:id,disk,path',
+                'productAttributes' => fn ($query) => $query
+                    ->select(['id', 'product_id', 'attribute_id', 'value', 'sort_order', 'show_on_top'])
+                    ->whereIn('attribute_id', $attributeIds),
+                'productAttributes.attribute:id,name,slug,icon,description,data_type,unit,is_filterable,is_active,sort_order',
+        ]);
+
+        return response()->json(['data' => [
+            'attributes' => $attributes,
+            'products' => ProductComparisonResource::collection($products),
+        ]]);
+    }
+
+    private function resolvePublicProduct(string $identifier): Product
+    {
+        if (Str::isUuid($identifier)) {
+            return Product::query()->findOrFail($identifier);
+        }
+
+        abort_unless(preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $identifier) === 1, 404);
+
+        return Product::query()->where('slug', $identifier)->firstOrFail();
     }
 
     public function categories(): AnonymousResourceCollection

@@ -28,7 +28,15 @@ class ProductController extends Controller
         $this->authorize('viewAny', Product::class);
 
         $query = $this->filteredQuery($request)
-            ->with(['brand', 'category', 'productType', 'hsnCode', 'images.media', 'warehouseStocks.warehouse'])
+            ->with([
+                'brand:id,name,slug',
+                'category:id,name,slug',
+                'productType:id,name,slug',
+                'hsnCode:id,code,description',
+                'images' => fn ($q) => $q->orderBy('sort_order')->with('media:id,disk,path,original_filename'),
+                'warehouseStocks:id,product_id,warehouse_id,quantity,reserved_quantity',
+                'warehouseStocks.warehouse:id,name',
+            ])
             ->withSum('warehouseStocks', 'quantity')
             ->withSum('warehouseStocks', 'reserved_quantity');
         match ($request->validated('sort', 'newest')) {

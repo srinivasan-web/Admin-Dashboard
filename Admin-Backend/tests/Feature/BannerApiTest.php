@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Banner;
+use App\Models\Category;
+use App\Models\ProductType;
 use App\Models\Media;
 use App\Models\Permission;
 use App\Models\Role;
@@ -18,6 +20,32 @@ use Tests\TestCase;
 class BannerApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_listing_banners_are_isolated_by_category_and_schedule(): void
+    {
+        $first = Category::factory()->create();
+        $second = Category::factory()->create();
+        $type = ProductType::factory()->create();
+        $desktop = Media::factory()->create();
+        $mobile = Media::factory()->create();
+        $this->actingAs($this->manager());
+
+        $base = array_merge($this->payload($desktop, $mobile), ['page' => 'listing']);
+        $this->postJson('/api/v1/admin/banners', array_merge($base, ['category_id' => $first->id, 'title' => 'First category']))->assertCreated();
+        $this->postJson('/api/v1/admin/banners', array_merge($base, ['category_id' => $second->id, 'title' => 'Second category']))->assertCreated();
+        $this->postJson('/api/v1/admin/banners', array_merge($base, ['product_type_id' => $type->id, 'title' => 'Treadmills']))->assertCreated();
+        $this->postJson('/api/v1/admin/banners', array_merge($base, ['category_id' => $first->id, 'title' => 'Upcoming', 'start_at' => now()->addDay()->toISOString()]))->assertCreated();
+        $this->postJson('/api/v1/admin/banners', array_merge($base, ['page' => 'landing', 'category_id' => $first->id]))->assertUnprocessable();
+
+        $this->getJson('/api/v1/banners/active?page=listing&category_id='.$first->id)
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'First category');
+        $this->getJson('/api/v1/banners/active?page=listing&category_id='.$second->id)
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Second category');
+        $this->getJson('/api/v1/banners/active?page=listing&product_type_id='.$type->id)
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Treadmills');
+        $this->getJson('/api/v1/banners/active?page=listing')->assertExactJson(['data' => []]);
+        $this->getJson('/api/v1/banners/active?page=landing&category_id='.$first->id)->assertNotFound();
+    }
 
     public function test_schema_uses_uuid_media_foreign_keys_and_media_cannot_be_deleted_while_referenced(): void
     {

@@ -77,7 +77,7 @@ export function OrdersList({
 
   const title = abandoned ? "Abandoned orders" : "Orders";
   return (
-    <section className="!mx-auto !w-full !max-w-[1440px] !py-6 lg:!py-8">
+    <section className="!w-full !py-6 lg:!py-8">
       <OrdersPageHeader
         title={title}
         description={

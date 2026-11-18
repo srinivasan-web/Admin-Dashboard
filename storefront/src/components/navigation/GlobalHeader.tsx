@@ -18,7 +18,6 @@ import {
 import { Link, useLocation } from "../../app/navigation";
 import type { Category } from "../../api/catalog";
 import { BrandLogo } from "./BrandLogo";
-import { EquipmentMegaMenu } from "./EquipmentMegaMenu";
 import { ProductSearch } from "./ProductSearch";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
@@ -139,14 +138,14 @@ function MobileNavigationDrawer({
           </button>
         </div>
         <nav aria-label="Mobile equipment navigation">
-          <span className="nav-overline">SHOP BY EQUIPMENT</span>
+          <span className="nav-overline">EXPLORE EQUIPMENT</span>
           <Link href="/products" onClick={onNavigate}>
             All equipment
           </Link>
           {categories.map((category) => (
             <Link
               key={category.id}
-              href={`/products?category_id=${encodeURIComponent(category.id)}`}
+              href={`/equipment/${encodeURIComponent(category.slug)}`}
               onClick={onNavigate}
             >
               {category.name}
@@ -216,13 +215,6 @@ export function GlobalHeader({
      
       <div className="global-header-main">
         <BrandLogo />
-        <div className="desktop-equipment">
-          <EquipmentMegaMenu
-            categories={categories}
-            categoryError={categoryError}
-            retryCategories={retryCategories}
-          />
-        </div>
         <div className="desktop-search">
           <ProductSearch id="global-product-search" location={location} />
         </div>
@@ -292,4 +284,3 @@ export function GlobalHeader({
     </header>
   );
 }
-  

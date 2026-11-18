@@ -3,8 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  CheckCircle2,
+  Clock,
   ImagePlus,
   Plus,
+  RefreshCw,
   Sliders,
   Star,
   Trash2,
@@ -20,6 +23,7 @@ import type {
 import { loadWarehouseStock } from "./catalogApi";
 import { errorMessage } from "../../api/client";
 import { selectedHighlightSpecifications } from "./productFormState";
+import { getAttributeVisual } from "./attributeVisuals";
 
 export type ProductRelatedDraft = {
   removedSpecificationIds: string[];
@@ -308,7 +312,7 @@ export function ProductRelatedSections({
           type: mediaType.trim(),
           sort_order: nextMediaSortOrder() + index,
           is_primary:
-            !images.some(
+            mediaType.trim() !== "360_frame" && !images.some(
               (image) =>
                 image.is_primary && !draft.removedImageIds.includes(image.id),
             ) &&
@@ -372,9 +376,6 @@ export function ProductRelatedSections({
             <h2 className="text-base font-bold text-slate-800 tracking-tight">
               Attributes &amp; Specifications
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Assign technical specifications and highlight key selling points for storefront filters.
-            </p>
           </div>
           <button
             type="button"
@@ -412,12 +413,27 @@ export function ProductRelatedSections({
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Assign Specification
             </span>
-            {selectedAttribute && (
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                Type: {selectedAttribute.data_type}
-                {selectedAttribute.unit ? ` · Unit: ${selectedAttribute.unit}` : ""}
-              </span>
-            )}
+            {selectedAttribute && (() => {
+              const selectedVisual = getAttributeVisual(
+                selectedAttribute.name,
+                selectedAttribute.slug,
+                selectedAttribute.icon,
+                13,
+              );
+              return (
+                <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-2xs">
+                  <div className={`flex size-5 shrink-0 items-center justify-center rounded-md border ${selectedVisual.bg}`}>
+                    {selectedVisual.icon}
+                  </div>
+                  <span>Type: {selectedAttribute.data_type}</span>
+                  {selectedAttribute.unit && (
+                    <span className="font-semibold text-slate-900 font-mono">
+                      · Unit: {selectedAttribute.unit}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-12">
@@ -593,9 +609,6 @@ export function ProductRelatedSections({
             <h2 className="text-base font-bold text-slate-800 tracking-tight">
               Media &amp; Product Imagery
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Upload, organize, and reorder high-resolution product photos. Changes apply upon saving.
-            </p>
           </div>
           <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
             {images.length -
@@ -613,9 +626,22 @@ export function ProductRelatedSections({
 
         {/* Saved Product Images Gallery */}
         <div className="mt-6">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
-            Saved Product Images
-          </h3>
+          <div className="mb-3.5 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span>
+                Saved Product Images (
+                {
+                  images.filter((image) => !draft.removedImageIds.includes(image.id))
+                    .length
+                }
+                )
+              </span>
+            </h3>
+            <span className="text-[11px] text-slate-400">
+              Active catalog assets
+            </span>
+          </div>
           {images.some((image) => !draft.removedImageIds.includes(image.id)) ? (
             <div
               className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
@@ -624,141 +650,185 @@ export function ProductRelatedSections({
               {[...images]
                 .filter((image) => !draft.removedImageIds.includes(image.id))
                 .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                .map((image, index) => (
-                  <div
-                    key={image.id}
-                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-2.5 shadow-xs transition hover:border-slate-300 hover:shadow-sm"
-                  >
-                    <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-50">
-                      <img
-                        src={image.url}
-                        alt={`Product image ${index + 1}`}
-                        className="h-full w-full object-contain"
-                      />
-                      <span className="absolute bottom-2 left-2 rounded-md bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-xs">
-                        {image.is_primary ? "★ Primary" : `#${index + 1}`}
-                      </span>
-                    </div>
+                .map((image, index) => {
+                  const isImagePrimary = selectedPrimaryImageId
+                    ? selectedPrimaryImageId === image.id
+                    : !draft.imageUpdates.some((item) => item.is_primary) &&
+                      !draft.media.some((item) => item.is_primary) &&
+                      Boolean(image.is_primary);
+                  const isReplacementQueued = draft.media.some(
+                    (item) => item.replace_image_id === image.id,
+                  );
+                  const currentOrder =
+                    draft.imageUpdates.find((item) => item.id === image.id)
+                      ?.sort_order ??
+                    image.sort_order ??
+                    index;
 
-                    {draft.media.some(
-                      (item) => item.replace_image_id === image.id,
-                    ) && (
-                      <p className="mt-2 text-center text-[11px] font-semibold text-orange-600">
-                        Replacement queued
-                      </p>
-                    )}
+                  return (
+                    <article
+                      key={image.id}
+                      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xs transition hover:border-slate-300 hover:shadow-sm"
+                    >
+                      <div>
+                        {/* Square Image Container */}
+                        <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center p-2">
+                          <img
+                            src={image.url}
+                            alt={`Product image ${index + 1}`}
+                            className="h-full w-full object-contain transition duration-200 group-hover:scale-105"
+                          />
 
-                    <div className="mt-2.5 flex flex-col gap-1.5 text-xs">
-                      <div className="flex items-center justify-between gap-1">
-                        <button
-                          type="button"
-                          className="flex-1 rounded-lg border border-slate-200 bg-white py-1 text-center text-[11px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                          onClick={() => {
-                            setReplacingImage(image);
-                            setMediaEntryEdited(true);
-                            replaceInput.current?.click();
-                          }}
-                        >
-                          Replace
-                        </button>
-                        <button
-                          type="button"
-                          className="flex-1 rounded-lg border border-red-200 bg-red-50/50 py-1 text-center text-[11px] font-medium text-red-700 hover:bg-red-50 cursor-pointer"
-                          onClick={() =>
-                            onChange({
-                              ...draft,
-                              removedImageIds: [
-                                ...draft.removedImageIds,
-                                image.id,
-                              ],
-                              imageUpdates: draft.imageUpdates.filter(
-                                (item) => item.id !== image.id,
-                              ),
-                              media: draft.media.filter(
-                                (item) => item.replace_image_id !== image.id,
-                              ),
-                            })
-                          }
-                        >
-                          Remove
-                        </button>
+                          {/* Badges Overlay */}
+                          <div className="absolute top-2 left-2 flex items-center gap-1">
+                            {isImagePrimary ? (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                                <Star size={10} className="fill-white text-white" />
+                                Primary
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-md bg-slate-900/65 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-xs font-mono">
+                                #{index + 1}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="absolute top-2 right-2">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50/95 border border-emerald-200/80 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 shadow-2xs backdrop-blur-xs">
+                              Saved
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Details / Type */}
+                        <div className="mt-2.5 px-0.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="block truncate text-xs font-bold text-slate-800">
+                              {image.type === "360_frame"
+                                ? `360° Frame #${image.sort_order ?? index}`
+                                : `Image #${index + 1}`}
+                            </span>
+                            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                              {image.type === "360_frame" ? "360°" : "Gallery"}
+                            </span>
+                          </div>
+                          {isReplacementQueued && (
+                            <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-orange-600">
+                              <Clock size={11} />
+                              Replacement queued
+                            </p>
+                          )}
+                        </div>
                       </div>
 
-                      <button
-                        type="button"
-                        disabled={
-                          selectedPrimaryImageId === image.id ||
-                          (!selectedPrimaryImageId && image.is_primary)
-                        }
-                        onClick={() =>
-                          onChange({
-                            ...draft,
-                            media: draft.media.map((item) => ({
-                              ...item,
-                              is_primary: false,
-                            })),
-                            imageUpdates: [
-                              ...draft.imageUpdates
-                                .filter((item) => item.id !== image.id)
-                                .map((item) => ({
+                      <div className="mt-3 flex flex-col gap-2">
+                        {/* Primary Action Button */}
+                        {isImagePrimary ? (
+                          <div className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/80 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs">
+                            <CheckCircle2 size={13} className="text-emerald-600" />
+                            <span>Primary Image</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={image.type === "360_frame"}
+                            onClick={() =>
+                              onChange({
+                                ...draft,
+                                media: draft.media.map((item) => ({
                                   ...item,
                                   is_primary: false,
                                 })),
-                              {
-                                id: image.id,
-                                sort_order:
-                                  draft.imageUpdates.find(
-                                    (item) => item.id === image.id,
-                                  )?.sort_order ??
-                                  image.sort_order ??
-                                  index,
-                                is_primary: true,
-                              },
-                            ],
-                          })
-                        }
-                        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-1 text-center text-[11px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
-                      >
-                        Make Primary
-                      </button>
+                                imageUpdates: [
+                                  ...draft.imageUpdates
+                                    .filter((item) => item.id !== image.id)
+                                    .map((item) => ({
+                                      ...item,
+                                      is_primary: false,
+                                    })),
+                                  {
+                                    id: image.id,
+                                    sort_order: currentOrder,
+                                    is_primary: true,
+                                  },
+                                ],
+                              })
+                            }
+                            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-300 py-1.5 text-xs font-semibold text-slate-700 transition cursor-pointer disabled:opacity-40"
+                          >
+                            <Star size={13} className="text-slate-400" />
+                            <span>Make Primary</span>
+                          </button>
+                        )}
 
-                      <label className="flex items-center justify-between text-[11px] text-slate-500">
-                        <span>Order</span>
-                        <input
-                          className="h-6 w-14 rounded-md border border-slate-300 px-1.5 text-center text-xs text-slate-900"
-                          type="number"
-                          min="0"
-                          aria-label={`Sort order for image ${index + 1}`}
-                          value={
-                            draft.imageUpdates.find(
-                              (item) => item.id === image.id,
-                            )?.sort_order ??
-                            image.sort_order ??
-                            index
-                          }
-                          onChange={(event) =>
-                            onChange({
-                              ...draft,
-                              imageUpdates: [
-                                ...draft.imageUpdates.filter(
+                        {/* Action Row: Replace & Remove */}
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white py-1 text-center text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer"
+                            onClick={() => {
+                              setReplacingImage(image);
+                              setMediaEntryEdited(true);
+                              replaceInput.current?.click();
+                            }}
+                          >
+                            <RefreshCw size={12} className="text-slate-500" />
+                            <span>Replace</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-red-200 bg-red-50/60 py-1 text-center text-xs font-medium text-red-600 hover:bg-red-100 hover:border-red-300 transition cursor-pointer"
+                            onClick={() =>
+                              onChange({
+                                ...draft,
+                                removedImageIds: [
+                                  ...draft.removedImageIds,
+                                  image.id,
+                                ],
+                                imageUpdates: draft.imageUpdates.filter(
                                   (item) => item.id !== image.id,
                                 ),
-                                {
-                                  id: image.id,
-                                  sort_order: Number(event.target.value),
-                                  is_primary:
-                                    draft.imageUpdates.find(
-                                      (item) => item.id === image.id,
-                                    )?.is_primary ?? image.is_primary,
-                                },
-                              ],
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ))}
+                                media: draft.media.filter(
+                                  (item) => item.replace_image_id !== image.id,
+                                ),
+                              })
+                            }
+                          >
+                            <Trash2 size={12} className="text-red-500" />
+                            <span>Remove</span>
+                          </button>
+                        </div>
+
+                        {/* Sequence / Order Row */}
+                        <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                          <span className="font-medium text-slate-600">Display Order</span>
+                          <input
+                            className="h-6 w-14 rounded-md border border-slate-300 bg-slate-50/60 px-1 text-center font-mono text-xs font-bold text-slate-900 focus:border-orange-500 focus:bg-white focus:outline-hidden"
+                            type="number"
+                            min="0"
+                            aria-label={`Sort order for image ${index + 1}`}
+                            value={currentOrder}
+                            onChange={(event) =>
+                              onChange({
+                                ...draft,
+                                imageUpdates: [
+                                  ...draft.imageUpdates.filter(
+                                    (item) => item.id !== image.id,
+                                  ),
+                                  {
+                                    id: image.id,
+                                    sort_order: Number(event.target.value),
+                                    is_primary: isImagePrimary,
+                                  },
+                                ],
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
             </div>
           ) : (
             <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-500">
@@ -853,20 +923,27 @@ export function ProductRelatedSections({
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <label className="text-xs font-semibold text-slate-700">
-                Default Image Type:
+                Image type:
               </label>
-              <input
+              <select
                 value={mediaType}
-                maxLength={50}
-                placeholder="gallery"
                 onChange={(event) => {
                   setMediaType(event.target.value);
                   setMediaEntryEdited(true);
                   setMediaError(undefined);
                 }}
                 className="h-8 w-32 rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900 shadow-xs focus:border-orange-500 focus:outline-hidden"
-              />
+              >
+                <option value="gallery">Gallery</option>
+                <option value="360_frame">360° frames</option>
+              </select>
             </div>
+
+            {mediaType === "360_frame" && (
+              <p className="text-xs text-slate-500">
+                Select 8–72 real photos taken around this exact product, in rotation order. Frames are not regular gallery images.
+              </p>
+            )}
 
             {(mediaEntryEdited || replacingImage || mediaError) && (
               <button
@@ -895,91 +972,144 @@ export function ProductRelatedSections({
 
         {/* Ready to Upload Queue */}
         {draft.media.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/50 p-5">
-            <h3 className="mb-3.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-              <ImagePlus size={16} className="text-orange-600" />
-              <span>Ready to upload ({draft.media.length})</span>
-            </h3>
+          <div className="mt-6 rounded-2xl border border-orange-200/70 bg-orange-50/20 p-5">
+            <div className="mb-3.5 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-950">
+                <ImagePlus size={16} className="text-orange-600" />
+                <span>Ready to Upload ({draft.media.length})</span>
+              </h3>
+              <span className="text-[11px] font-medium text-orange-700/80">
+                Staged for upload on save
+              </span>
+            </div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {draft.media.map((item, index) => (
-                <article
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-2.5 shadow-xs transition hover:border-slate-300"
-                  key={`${item.file.name}-${index}`}
-                  draggable
-                  onDragStart={() => setDraggedMediaIndex(index)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    if (draggedMediaIndex !== undefined)
-                      reorderQueuedMedia(draggedMediaIndex, index);
-                    setDraggedMediaIndex(undefined);
-                  }}
-                  onDragEnd={() => setDraggedMediaIndex(undefined)}
-                >
-                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-50">
-                    <FilePreview file={item.file} />
-                    {item.is_primary && (
-                      <span className="absolute bottom-2 left-2 rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">
-                        Primary
-                      </span>
-                    )}
-                  </div>
+              {draft.media.map((item, index) => {
+                const fileSizeFormatted = item.file.size
+                  ? `${(item.file.size / (1024 * 1024)).toFixed(2)} MB`
+                  : null;
 
-                  <span
-                    className="mt-2 block truncate text-[11px] font-medium text-slate-800"
-                    title={item.file.name}
+                return (
+                  <article
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-orange-200/90 bg-white p-3 shadow-xs transition hover:border-orange-300 hover:shadow-md"
+                    key={`${item.file.name}-${index}`}
+                    draggable
+                    onDragStart={() => setDraggedMediaIndex(index)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      if (draggedMediaIndex !== undefined)
+                        reorderQueuedMedia(draggedMediaIndex, index);
+                      setDraggedMediaIndex(undefined);
+                    }}
+                    onDragEnd={() => setDraggedMediaIndex(undefined)}
                   >
-                    {item.file.name}
-                  </span>
+                    <div>
+                      {/* Square Image Preview Container */}
+                      <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center p-2">
+                        <FilePreview file={item.file} />
 
-                  <div className="mt-2 flex flex-col gap-1.5 border-t border-slate-100 pt-2 text-xs">
-                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="primary-product-image"
-                        aria-label={`Make ${item.file.name} primary`}
-                        checked={item.is_primary}
-                        onChange={() =>
-                          onChange({
-                            ...draft,
-                            media: draft.media.map(
-                              (candidate, candidateIndex) => ({
-                                ...candidate,
-                                is_primary: candidateIndex === index,
-                              }),
-                            ),
-                          })
-                        }
-                        className="text-orange-600"
-                      />
-                      <span>Make Primary</span>
-                    </label>
+                        {/* Badges Overlay */}
+                        <div className="absolute top-2 left-2 flex items-center gap-1">
+                          {item.is_primary ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                              <Star size={10} className="fill-white text-white" />
+                              Primary
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-md bg-slate-900/65 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-xs font-mono">
+                              #{index + 1}
+                            </span>
+                          )}
+                        </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-500">
-                      <span>Order #{item.sort_order + 1}</span>
-                      <div className="flex items-center gap-1">
+                        <div className="absolute top-2 right-2">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-amber-50/95 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 shadow-2xs backdrop-blur-xs">
+                            <Clock size={10} />
+                            Queued
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* File Metadata */}
+                      <div className="mt-2.5 px-0.5">
+                        <span
+                          className="block truncate text-xs font-bold text-slate-800"
+                          title={item.file.name}
+                        >
+                          {item.file.name}
+                        </span>
+                        <div className="mt-0.5 flex items-center justify-between text-[11px] text-slate-400">
+                          <span>{fileSizeFormatted ?? "Pending"}</span>
+                          <span className="font-medium uppercase tracking-wider">
+                            {item.type === "360_frame" ? "360°" : "Gallery"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-col gap-2">
+                      {/* Primary Selection Button */}
+                      {item.is_primary ? (
+                        <div className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50/80 py-1.5 text-xs font-bold text-orange-700 shadow-2xs">
+                          <CheckCircle2 size={13} className="text-orange-600" />
+                          <span>Primary Selection</span>
+                        </div>
+                      ) : (
                         <button
                           type="button"
-                          className="h-6 w-6 rounded-md border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                          aria-label={`Make ${item.file.name} primary`}
+                          disabled={item.type === "360_frame"}
+                          onClick={() =>
+                            onChange({
+                              ...draft,
+                              imageUpdates: draft.imageUpdates.map((candidate) => ({
+                                ...candidate,
+                                is_primary: false,
+                              })),
+                              media: draft.media.map(
+                                (candidate, candidateIndex) => ({
+                                  ...candidate,
+                                  is_primary: candidateIndex === index,
+                                }),
+                              ),
+                            })
+                          }
+                          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 hover:bg-orange-50/60 hover:border-orange-300 hover:text-orange-700 py-1.5 text-xs font-semibold text-slate-700 transition cursor-pointer disabled:opacity-40"
+                        >
+                          <Star size={13} className="text-slate-400" />
+                          <span>Set as Primary</span>
+                        </button>
+                      )}
+
+                      {/* Action Row: Move Up, Move Down, Delete */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
                           aria-label={`Move ${item.file.name} earlier`}
+                          title={`Move ${item.file.name} earlier`}
                           disabled={index === 0}
                           onClick={() => reorderQueuedMedia(index, index - 1)}
                         >
-                          <ArrowUp size={12} />
+                          <ArrowUp size={12} className="text-slate-500" />
+                          <span>Up</span>
                         </button>
                         <button
                           type="button"
-                          className="h-6 w-6 rounded-md border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
                           aria-label={`Move ${item.file.name} later`}
+                          title={`Move ${item.file.name} later`}
                           disabled={index === draft.media.length - 1}
                           onClick={() => reorderQueuedMedia(index, index + 1)}
                         >
-                          <ArrowDown size={12} />
+                          <ArrowDown size={12} className="text-slate-500" />
+                          <span>Down</span>
                         </button>
                         <button
                           type="button"
-                          className="h-6 w-6 rounded-md border border-red-200 bg-red-50 p-1 text-red-600 hover:bg-red-100 cursor-pointer"
+                          className="flex items-center justify-center rounded-lg border border-red-200 bg-red-50/60 p-1.5 text-red-600 hover:bg-red-100 hover:border-red-300 transition cursor-pointer"
                           aria-label={`Remove ${item.file.name}`}
+                          title={`Remove ${item.file.name}`}
                           onClick={() =>
                             onChange({
                               ...draft,
@@ -989,13 +1119,21 @@ export function ProductRelatedSections({
                             })
                           }
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
+
+                      {/* Queue Position Row */}
+                      <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                        <span className="font-medium text-slate-600">Queue Position</span>
+                        <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                          #{item.sort_order + 1}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1011,19 +1149,12 @@ export function ProductRelatedSections({
             <h2 className="text-base font-bold text-slate-800 tracking-tight">
               Inventory Allocation
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Record physical stock adjustments, receipts, and dispatches across warehouse locations.
-            </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-            <Warehouse size={13} className="text-slate-500" />
-            <span>{masters.warehouses.length} Warehouses</span>
-          </span>
         </div>
 
         {!canManageInventory ? (
           <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
-            Inventory adjustments require warehouse management permissions. You can still save product catalog details.
+            Warehouse management permissions required.
           </p>
         ) : (
           <div className="mt-6 space-y-6">
@@ -1347,14 +1478,22 @@ function DraftSpecifications({
               (candidate) => candidate.id === item.attribute_id,
             );
             const name = attribute?.name ?? "Unavailable attribute";
+            const visual = getAttributeVisual(
+              name,
+              attribute?.slug,
+              attribute?.icon,
+              15,
+            );
             return (
-              <tr key={item.attribute_id} className="hover:bg-slate-50/50">
-                <td className="px-3.5 py-3 text-center text-slate-400 font-medium">
-                  {index + 1}
+              <tr key={item.attribute_id} className="group hover:bg-slate-50/60 transition-colors">
+                <td className="px-3.5 py-3 text-center">
+                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-500">
+                    {index + 1}
+                  </span>
                 </td>
                 <td className="px-3 py-3">
                   <input
-                    className="h-7 w-14 rounded-md border border-slate-300 px-1.5 text-center text-xs font-mono text-slate-900"
+                    className="h-7.5 w-14 rounded-lg border border-slate-300 bg-white px-1.5 text-center text-xs font-mono font-medium text-slate-900 shadow-2xs focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-hidden transition"
                     aria-label={`Sequence for ${name}`}
                     type="number"
                     min="0"
@@ -1368,13 +1507,24 @@ function DraftSpecifications({
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <strong className="block font-semibold text-slate-900">{name}</strong>
-                  <small className="block text-[11px] text-slate-500">
-                    {item.id ? "Existing specification" : "New · not saved"}
-                    {attribute && !attribute.is_active
-                      ? " · Inactive attribute"
-                      : ""}
-                  </small>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${visual.bg} shadow-2xs transition-transform group-hover:scale-105`}
+                      title={name}
+                      aria-hidden="true"
+                    >
+                      {visual.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <strong className="block font-semibold text-slate-900 leading-snug">{name}</strong>
+                      <small className="block text-[11px] text-slate-500">
+                        {item.id ? "Existing specification" : "New · not saved"}
+                        {attribute && !attribute.is_active
+                          ? " · Inactive attribute"
+                          : ""}
+                      </small>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="relative">
@@ -1386,36 +1536,40 @@ function DraftSpecifications({
                       onChange={(event) =>
                         onEdit(item.attribute_id, { value: event.target.value })
                       }
-                      className="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 focus:border-orange-500 focus:outline-hidden"
+                      className="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 shadow-2xs focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-hidden transition"
                     />
                     {attribute?.unit && (
-                      <span className="mt-0.5 block text-[11px] text-slate-400">
-                        Unit: {attribute.unit}
+                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                        <span className="text-slate-300">Unit:</span>
+                        <span className="rounded bg-slate-100 px-1.5 py-0.2 text-slate-600 font-mono">
+                          {attribute.unit}
+                        </span>
                       </span>
                     )}
                   </div>
                 </td>
                 <td className="px-3 py-3">
                   <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
                       attribute?.is_filterable
                         ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-slate-100 text-slate-600"
+                        : "bg-slate-100 text-slate-600 border border-slate-200"
                     }`}
                     title="Managed in Attribute Master"
                   >
+                    <span className={`size-1.5 rounded-full ${attribute?.is_filterable ? "bg-emerald-500" : "bg-slate-400"}`} />
                     {attribute?.is_filterable ? "Yes" : "No"}
                   </span>
                   {attribute &&
                     !attribute.is_active &&
                     attribute.is_filterable && (
-                      <small className="block text-[10px] text-amber-600">
+                      <small className="block text-[10px] text-amber-600 mt-0.5">
                         Inactive
                       </small>
                     )}
                 </td>
                 <td className="px-3.5 py-3">
-                  <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                  <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       aria-label={`Show ${name} on top`}
@@ -1425,18 +1579,18 @@ function DraftSpecifications({
                           highlight: event.target.checked,
                         })
                       }
-                      className="h-3.5 w-3.5 rounded-sm border-slate-300 text-orange-600 focus:ring-orange-500/20"
+                      className="h-3.5 w-3.5 rounded-sm border-slate-300 text-orange-600 focus:ring-orange-500/20 cursor-pointer"
                     />
                     <span>Highlight</span>
                   </label>
                   {item.highlight && (
-                    <details className="mt-1 text-[11px]">
-                      <summary className="text-orange-600 cursor-pointer hover:underline">
+                    <details className="mt-1 text-[11px] group/details">
+                      <summary className="text-orange-600 font-medium cursor-pointer hover:underline">
                         Order settings
                       </summary>
-                      <div className="mt-1 flex items-center gap-2">
+                      <div className="mt-1.5 flex items-center gap-2 p-1.5 rounded-lg bg-orange-50/60 border border-orange-100">
                         <input
-                          className="h-6 w-12 rounded-md border border-slate-300 px-1 text-center text-xs"
+                          className="h-6 w-12 rounded-md border border-slate-300 bg-white px-1 text-center text-xs font-mono text-slate-900"
                           aria-label={`Highlight order for ${name}`}
                           type="number"
                           min="0"
@@ -1448,7 +1602,7 @@ function DraftSpecifications({
                             })
                           }
                         />
-                        <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer">
+                        <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer select-none">
                           <input
                             type="checkbox"
                             aria-label={`Activate highlight ${name}`}
@@ -1458,7 +1612,7 @@ function DraftSpecifications({
                                 highlight_active: event.target.checked,
                               })
                             }
-                            className="h-3 w-3 rounded-xs text-orange-600"
+                            className="h-3 w-3 rounded-xs text-orange-600 cursor-pointer"
                           />
                           <span>Active</span>
                         </label>
@@ -1467,32 +1621,35 @@ function DraftSpecifications({
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <div className="inline-flex items-center gap-1">
+                  <div className="inline-flex items-center gap-1.5 justify-end">
                     <button
                       type="button"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                      className="icon-button spec-action-btn"
                       aria-label={`Move ${name} earlier`}
+                      title={`Move ${name} earlier`}
                       disabled={index === 0}
                       onClick={() => onReorder(index, -1)}
                     >
-                      <ArrowUp size={13} />
+                      <ArrowUp size={14} strokeWidth={2.25} />
                     </button>
                     <button
                       type="button"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                      className="icon-button spec-action-btn"
                       aria-label={`Move ${name} later`}
+                      title={`Move ${name} later`}
                       disabled={index === specifications.length - 1}
                       onClick={() => onReorder(index, 1)}
                     >
-                      <ArrowDown size={13} />
+                      <ArrowDown size={14} strokeWidth={2.25} />
                     </button>
                     <button
                       type="button"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
+                      className="icon-button danger spec-action-btn"
                       aria-label={`Remove ${name}`}
+                      title={`Remove ${name}`}
                       onClick={() => onRemove(item.attribute_id)}
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} strokeWidth={2.25} />
                     </button>
                   </div>
                 </td>

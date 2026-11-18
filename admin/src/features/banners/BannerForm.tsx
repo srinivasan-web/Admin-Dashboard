@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, Calendar, Link2, Save } from "lucide-react";
-import { ApiError, errorMessage } from "../../api/client";
+import { ApiError, apiRequest, errorMessage } from "../../api/client";
 import { BannerMediaField } from "./BannerMediaField";
 import {
   createBanner,
@@ -19,6 +19,8 @@ type BannerDraft = {
   desktop_media_id: string;
   mobile_media_id: string;
   page: string;
+  category_id: string;
+  product_type_id: string;
   sort_order: number;
   redirect_url: string;
   start_at: string;
@@ -33,6 +35,8 @@ const emptyDraft: BannerDraft = {
   desktop_media_id: "",
   mobile_media_id: "",
   page: "landing",
+  category_id: "",
+  product_type_id: "",
   sort_order: 0,
   redirect_url: "",
   start_at: "",
@@ -57,6 +61,8 @@ function draftFromBanner(banner: Banner): BannerDraft {
     desktop_media_id: banner.desktop_media_id,
     mobile_media_id: banner.mobile_media_id,
     page: banner.page ?? "landing",
+    category_id: banner.category_id ?? "",
+    product_type_id: banner.product_type_id ?? "",
     sort_order: banner.sort_order,
     redirect_url: banner.redirect_url ?? "",
     start_at: toLocalDateTimeString(banner.start_at),
@@ -77,6 +83,7 @@ function validate(draft: BannerDraft): Record<string, string> {
   if (!draft.mobile_media_id.trim())
     errors.mobile_media_id = "Mobile image is required.";
   if (!draft.page.trim()) errors.page = "Page is required.";
+  if (draft.page !== "listing" && (draft.category_id || draft.product_type_id)) errors.page = "Choose Listing Page for equipment targeting.";
   if (draft.sort_order < 0)
     errors.sort_order = "Sort order must be zero or greater.";
   if (draft.redirect_url.trim()) {
@@ -121,6 +128,20 @@ export function BannerForm({
   const [submitError, setSubmitError] = useState<string>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [productTypes, setProductTypes] = useState<Array<{ id: string; name: string }>>([]);
+  const [categoriesError, setCategoriesError] = useState<string>();
+
+  useEffect(() => {
+    let active = true;
+    apiRequest<{ data: Array<{ id: string; name: string }> }>("/categories?per_page=100")
+      .then((result) => { if (active) setCategories(result.data); })
+      .catch((reason) => { if (active) setCategoriesError(errorMessage(reason)); });
+    apiRequest<{ data: Array<{ id: string; name: string }> }>("/product-types")
+      .then((result) => { if (active) setProductTypes(result.data); })
+      .catch((reason) => { if (active) setCategoriesError(errorMessage(reason)); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (mode !== "edit" || !id) return;
@@ -168,6 +189,8 @@ export function BannerForm({
       desktop_media_id: draft.desktop_media_id,
       mobile_media_id: draft.mobile_media_id,
       page: draft.page.trim().toLowerCase(),
+      category_id: draft.page === "listing" ? draft.category_id || null : null,
+      product_type_id: draft.page === "listing" ? draft.product_type_id || null : null,
       sort_order: draft.sort_order,
       redirect_url: draft.redirect_url.trim() || null,
       start_at: draft.start_at ? new Date(draft.start_at).toISOString() : null,
@@ -324,7 +347,13 @@ export function BannerForm({
               <select
                 id="banner-page"
                 value={draft.page}
-                onChange={(event) => change("page", event.target.value)}
+                onChange={(event) => {
+                  change("page", event.target.value);
+                  if (event.target.value !== "listing") {
+                    change("category_id", "");
+                    change("product_type_id", "");
+                  }
+                }}
                 required
                 aria-invalid={Boolean(errors.page)}
                 className="w-full h-11 px-3 text-sm bg-white rounded-xl border border-slate-200 text-slate-900 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-colors shadow-2xs cursor-pointer capitalize"
@@ -338,6 +367,31 @@ export function BannerForm({
                 </span>
               )}
             </div>
+
+            {draft.page === "listing" && (
+              <div className="sm:col-span-3 flex flex-col gap-1.5">
+                <label htmlFor="banner-category" className="text-[13px] font-semibold text-slate-700">Listing category</label>
+                <select id="banner-category" value={draft.category_id} onChange={(event) => { change("category_id", event.target.value); if (event.target.value) change("product_type_id", ""); }} className="w-full h-11 px-3 text-sm bg-white rounded-xl border border-slate-200 text-slate-900">
+                  <option value="">General listing only</option>
+                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                  {draft.category_id && !categories.some((category) => category.id === draft.category_id) && <option value={draft.category_id}>Current category</option>}
+                </select>
+                {categoriesError && <span role="alert" className="text-xs text-red-600">{categoriesError}</span>}
+                {errors.category_id && <span className="text-xs text-red-600">{errors.category_id}</span>}
+              </div>
+            )}
+
+            {draft.page === "listing" && (
+              <div className="sm:col-span-3 flex flex-col gap-1.5">
+                <label htmlFor="banner-product-type" className="text-[13px] font-semibold text-slate-700">Equipment type</label>
+                <select id="banner-product-type" value={draft.product_type_id} onChange={(event) => { change("product_type_id", event.target.value); if (event.target.value) change("category_id", ""); }} className="w-full h-11 px-3 text-sm bg-white rounded-xl border border-slate-200 text-slate-900">
+                  <option value="">No equipment type</option>
+                  {productTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+                  {draft.product_type_id && !productTypes.some((type) => type.id === draft.product_type_id) && <option value={draft.product_type_id}>Current equipment type</option>}
+                </select>
+                {errors.product_type_id && <span className="text-xs text-red-600">{errors.product_type_id}</span>}
+              </div>
+            )}
 
             {/* Sort Order */}
             <div className="sm:col-span-3 flex flex-col gap-1.5">

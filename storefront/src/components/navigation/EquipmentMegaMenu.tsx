@@ -80,7 +80,7 @@ export function EquipmentMegaMenu({
             {categories.map((category) => (
               <Link
                 key={category.id}
-                href={`/products?category_id=${encodeURIComponent(category.id)}`}
+                href={`/equipment/${encodeURIComponent(category.slug)}`}
                 className={selected?.id === category.id ? "is-selected" : ""}
                 onMouseEnter={() => setSelectedId(category.id)}
                 onFocus={() => setSelectedId(category.id)}
@@ -114,7 +114,7 @@ export function EquipmentMegaMenu({
                 <h2>{selected.name}</h2>
                 {selected.description && <p>{selected.description}</p>}
                 <Link
-                  href={`/products?category_id=${encodeURIComponent(selected.id)}`}
+                  href={`/equipment/${encodeURIComponent(selected.slug)}`}
                   onClick={() => setOpen(false)}
                 >
                   Explore {selected.name}{" "}

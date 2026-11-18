@@ -244,7 +244,7 @@ export function OrderDetailPage({
 
   if (loading && !order) {
     return (
-      <section className="!mx-auto !w-full !max-w-[1440px] !py-12">
+      <section className="!w-full !py-12">
         <div
           role="status"
           className="!rounded-2xl !border !border-slate-200 !bg-white !p-12 !text-center !text-sm !text-slate-500"
@@ -257,7 +257,7 @@ export function OrderDetailPage({
 
   if (!order) {
     return (
-      <section className="!mx-auto !w-full !max-w-[1440px] !py-8">
+      <section className="!w-full !py-8">
         <button
           type="button"
           onClick={onBack}
@@ -283,7 +283,7 @@ export function OrderDetailPage({
   }
 
   return (
-    <section className="!mx-auto !w-full !max-w-[1440px] !py-6 lg:!py-8">
+    <section className="!w-full !py-6 lg:!py-8">
       <OrdersPageHeader
         title={order.order_number}
         description={`Placed ${formatDate(order.placed_at)}${order.customer ? ` by ${order.customer.name}` : ""}.`}

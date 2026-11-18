@@ -18,6 +18,9 @@ class ManageProductImage
         DB::transaction(function () use ($product, $image, $attributes): void {
             Product::query()->lockForUpdate()->findOrFail($product->getKey());
             $image = $this->ownedImage($product, $image);
+            if ($image->type === '360_frame' && ($attributes['is_primary'] ?? false)) {
+                throw ValidationException::withMessages(['is_primary' => 'A 360° frame cannot be the primary product image.']);
+            }
             if (($attributes['is_primary'] ?? false) === true) {
                 $product->images()->where('is_primary', true)->update(['is_primary' => false]);
                 $image->refresh();
@@ -73,7 +76,7 @@ class ManageProductImage
             $media = Media::query()->lockForUpdate()->findOrFail($image->media_id);
             $image->delete();
             if ($wasPrimary) {
-                $next = $product->images()->orderBy('sort_order')->orderBy('id')->first();
+                $next = $product->images()->where('type', '!=', '360_frame')->orderBy('sort_order')->orderBy('id')->first();
                 $next?->update(['is_primary' => true]);
             }
             if ($media->isReferenced()) {

@@ -48,6 +48,12 @@ class ProductResource extends JsonResource
                 'alt_text' => $image->alt_text,
                 'url' => Storage::disk($image->media->disk)->url($image->media->path),
             ])),
+            'has_360_view' => $this->when(
+                array_key_exists('rotation_frame_count', $this->resource->getAttributes()) || $this->resource->relationLoaded('images'),
+                fn () => array_key_exists('rotation_frame_count', $this->resource->getAttributes())
+                    ? (int) $this->rotation_frame_count >= 8
+                    : $this->images->where('type', '360_frame')->count() >= 8,
+            ),
             'details' => $this->whenLoaded('details', fn () => $this->details
                 ->filter(fn ($detail) => $admin || $detail->is_active)
                 ->sortBy(fn ($detail) => [$detail->sort_order, $detail->id])->values()
@@ -67,6 +73,20 @@ class ProductResource extends JsonResource
                 'marketed_by' => $this->additionalDetails->marketed_by,
                 'consumer_complaints' => $this->additionalDetails->consumer_complaints,
             ] : null),
+            'benefits' => $this->whenLoaded('benefits', fn () => $this->benefits
+                ->filter(fn ($benefit) => $admin || $benefit->is_active)
+                ->sortBy(fn ($benefit) => [$benefit->sort_order, $benefit->id])->values()
+                ->map(fn ($benefit) => [
+                    'id' => $benefit->id,
+                    'title' => $benefit->title,
+                    'description' => $benefit->description,
+                    'benefit_type' => $benefit->benefit_type,
+                    'sort_order' => $benefit->sort_order,
+                    'is_active' => $benefit->is_active,
+                    'icon_url' => $benefit->iconMedia
+                        ? Storage::disk($benefit->iconMedia->disk)->url($benefit->iconMedia->path)
+                        : null,
+                ])),
             'available_stock' => $this->when(
                 array_key_exists('warehouse_stocks_sum_quantity', $this->resource->getAttributes()) && array_key_exists('warehouse_stocks_sum_reserved_quantity', $this->resource->getAttributes()),
                 fn () => max(0, (int) $this->warehouse_stocks_sum_quantity - (int) $this->warehouse_stocks_sum_reserved_quantity),

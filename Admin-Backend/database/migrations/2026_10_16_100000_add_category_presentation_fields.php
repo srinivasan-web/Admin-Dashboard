@@ -18,6 +18,7 @@ return new class extends Migration
     {
         Schema::table('categories', function (Blueprint $table): void {
             $table->dropConstrainedForeignId('image_media_id');
+            $table->dropIndex('categories_sort_order_index');
             $table->dropColumn('sort_order');
         });
     }

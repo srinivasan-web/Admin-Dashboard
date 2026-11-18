@@ -68,7 +68,7 @@ class ComboApiTest extends TestCase
 
     public function test_public_buy_it_with_returns_only_available_partners_from_active_combos(): void
     {
-        $primary = Product::factory()->create();
+        $primary = Product::factory()->create(['slug' => 'synthetic-workout-primary']);
         $available = Product::factory()->create();
         $unavailable = Product::factory()->create();
         WarehouseStock::factory()->create(['product_id' => $primary->id, 'quantity' => 2]);
@@ -89,6 +89,19 @@ class ComboApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $available->id);
+        $this->getJson("/api/v1/products/{$primary->slug}/buy-it-with")
+            ->assertOk()->assertJsonPath('data.0.id', $available->id);
+
+        foreach ([$available, $available->category, $available->productType] as $record) {
+            $record->update(['is_active' => false]);
+            $this->getJson("/api/v1/products/{$primary->slug}/buy-it-with")
+                ->assertOk()->assertJsonCount(0, 'data');
+            $record->update(['is_active' => true]);
+        }
+        $available->warehouseStocks()->update(['reserved_quantity' => 2]);
+        $this->getJson("/api/v1/products/{$primary->slug}/buy-it-with")
+            ->assertOk()->assertJsonCount(0, 'data');
+        $available->warehouseStocks()->update(['reserved_quantity' => 0]);
 
         $this->putJson("/api/v1/admin/combos/{$combo['id']}", [
             'name' => 'Workout partners',

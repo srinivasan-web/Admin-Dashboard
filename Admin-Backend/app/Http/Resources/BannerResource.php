@@ -24,6 +24,8 @@ class BannerResource extends JsonResource
             'desktop_media' => $this->whenLoaded('desktopMedia', fn (): array => $this->mediaData($this->desktopMedia)),
             'mobile_media' => $this->whenLoaded('mobileMedia', fn (): array => $this->mediaData($this->mobileMedia)),
             'page' => $this->page,
+            'category_id' => $this->category_id,
+            'product_type_id' => $this->product_type_id,
             'sort_order' => $this->sort_order,
             'redirect_url' => $this->redirect_url,
             'start_at' => $this->start_at?->toIso8601String(),

@@ -13,6 +13,7 @@ import {
   Package,
 } from "lucide-react";
 import { errorMessage } from "../../api/client";
+import { toast } from "../../components/ui/Toast";
 import {
   loadWarehouseStock,
   setWarehouseStock,
@@ -103,8 +104,11 @@ export function ProductOperations({
       );
       onSaved(response.data);
       setNotice("Product image uploaded.");
+      toast.success("Product image uploaded.");
     } catch (reason) {
-      setError(errorMessage(reason));
+      const err = errorMessage(reason);
+      setError(err);
+      toast.error(err);
     } finally {
       setUploading(false);
     }
@@ -135,17 +139,20 @@ export function ProductOperations({
       setStock(response.data);
       form.reset();
       onSaved();
-      setNotice(
+      const msg =
         response.data.quantity === stock.quantity
           ? "Warehouse stock saved."
           : stockOperation === "stock_in"
             ? "Stock received and movement recorded."
             : stockOperation === "stock_out"
               ? "Stock issued and movement recorded."
-              : "Warehouse stock adjusted and movement recorded.",
-      );
+              : "Warehouse stock adjusted and movement recorded.";
+      setNotice(msg);
+      toast.success(msg);
     } catch (reason) {
-      setError(errorMessage(reason));
+      const err = errorMessage(reason);
+      setError(err);
+      toast.error(err);
     } finally {
       setSavingStock(false);
     }

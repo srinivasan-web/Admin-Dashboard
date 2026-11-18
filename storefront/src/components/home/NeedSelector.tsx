@@ -12,7 +12,7 @@ import {
   Waves,
 } from "lucide-react";
 import { Link } from "../../app/navigation";
-import { specificationValue, type Product } from "../../api/catalog";
+import { productHref, specificationValue, type Product } from "../../api/catalog";
 import { ProductImage, ProductPrice } from "../catalog/ProductCard";
 import {
   needJourney,
@@ -175,7 +175,7 @@ export function NeedSelector({
                   </span>
                   <Link
                     className="inline-flex items-center gap-2 text-sm font-semibold"
-                    href={`/products/${encodeURIComponent(product.id)}`}
+                    href={productHref(product)}
                   >
                     {product.name}
                     <ArrowUpRight size={15} aria-hidden="true" />

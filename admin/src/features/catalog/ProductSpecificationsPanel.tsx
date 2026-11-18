@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { errorMessage } from "../../api/client";
+import { getAttributeVisual } from "./attributeVisuals";
 import {
   deleteSpecification,
   loadHighlights,
@@ -320,22 +321,24 @@ export function ProductSpecificationsPanel({
                         </td>
                         <td className="table-actions">
                           <button
-                            className="icon-button"
+                            className="icon-button spec-action-btn"
                             type="button"
                             disabled={index === 0}
                             onClick={() => moveHighlight(index, -1)}
                             aria-label="Move highlight up"
+                            title="Move highlight up"
                           >
-                            <ArrowUp size={16} />
+                            <ArrowUp size={14} strokeWidth={2.25} />
                           </button>
                           <button
-                            className="icon-button"
+                            className="icon-button spec-action-btn"
                             type="button"
                             disabled={index === highlights.length - 1}
                             onClick={() => moveHighlight(index, 1)}
                             aria-label="Move highlight down"
+                            title="Move highlight down"
                           >
-                            <ArrowDown size={16} />
+                            <ArrowDown size={14} strokeWidth={2.25} />
                           </button>
                         </td>
                       </tr>
@@ -517,42 +520,61 @@ function SpecificationTable({
           </tr>
         </thead>
         <tbody>
-          {specifications.map((specification) => (
-            <tr key={specification.id}>
-              <td>
-                <strong>{specification.attribute.name}</strong>
-              </td>
-              <td>{specification.value}</td>
-              <td>{specification.attribute.unit ?? "—"}</td>
-              <td>{specification.sort_order}</td>
-              {(onEdit || onRemove) && (
-                <td className="table-actions">
-                  {onEdit && (
-                    <button
-                      className="icon-button"
-                      type="button"
-                      disabled={disabled}
-                      aria-label={`Edit ${specification.attribute.name}`}
-                      onClick={() => onEdit(specification)}
+          {specifications.map((specification) => {
+            const visual = getAttributeVisual(
+              specification.attribute.name,
+              specification.attribute.slug,
+              specification.attribute.icon,
+              14,
+            );
+            return (
+              <tr key={specification.id}>
+                <td>
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${visual.bg} shadow-2xs`}
+                      title={specification.attribute.name}
+                      aria-hidden="true"
                     >
-                      Edit
-                    </button>
-                  )}
-                  {onRemove && (
-                    <button
-                      className="icon-button danger"
-                      type="button"
-                      disabled={disabled}
-                      aria-label={`Remove ${specification.attribute.name}`}
-                      onClick={() => onRemove(specification)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                      {visual.icon}
+                    </div>
+                    <strong>{specification.attribute.name}</strong>
+                  </div>
                 </td>
-              )}
-            </tr>
-          ))}
+                <td>{specification.value}</td>
+                <td>{specification.attribute.unit ?? "—"}</td>
+                <td>{specification.sort_order}</td>
+                {(onEdit || onRemove) && (
+                  <td className="table-actions">
+                    {onEdit && (
+                      <button
+                        className="icon-button spec-action-btn"
+                        type="button"
+                        disabled={disabled}
+                        aria-label={`Edit ${specification.attribute.name}`}
+                        title={`Edit ${specification.attribute.name}`}
+                        onClick={() => onEdit(specification)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {onRemove && (
+                      <button
+                        className="icon-button danger spec-action-btn"
+                        type="button"
+                        disabled={disabled}
+                        aria-label={`Remove ${specification.attribute.name}`}
+                        title={`Remove ${specification.attribute.name}`}
+                        onClick={() => onRemove(specification)}
+                      >
+                        <Trash2 size={14} strokeWidth={2.25} />
+                      </button>
+                    )}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

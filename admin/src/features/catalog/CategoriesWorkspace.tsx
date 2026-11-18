@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, PencilLine, Plus, Power, RotateCcw } from "lucide-react";
+import { ArrowLeft, PencilLine, Plus, Power, RotateCcw, Search, Tag } from "lucide-react";
 import { errorMessage } from "../../api/client";
 import { saveMaster } from "./catalogApi";
 import { MasterForm } from "./MasterForm";
 import { CategoryListingsPanel } from "./CategoryListingsPanel";
+import { CategoryComparisonPanel } from "./CategoryComparisonPanel";
 import { ProductManagementHeader } from "./ProductManagementHeader";
 import type { Master } from "./types";
 import { FilterBar, StatusBadge } from "../../components/ui";
@@ -103,6 +104,7 @@ export function CategoriesWorkspace({ categories, notice, onSaved, route, onRout
           onCancel={closeForm}
         />
         {editing && <CategoryListingsPanel categoryId={editing.id} />}
+        {editing && <CategoryComparisonPanel categoryId={editing.id} />}
       </section>
     );
   }
@@ -128,100 +130,149 @@ export function CategoriesWorkspace({ categories, notice, onSaved, route, onRout
           {error}
         </p>
       )}
-      <section className="card">
-        <FilterBar>
-          <input
-            aria-label="Search categories"
-            placeholder="Search categories"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
+      <section className="card w-full max-w-full">
+        <FilterBar className="flex items-center gap-3">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+            <input
+              aria-label="Search categories"
+              placeholder="Search categories by name, slug or description…"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="!w-full !rounded-xl !border-slate-200 !bg-white !pl-9.5 !pr-3 !py-2 !text-xs !shadow-2xs focus:!border-orange-500 focus:!ring-2 focus:!ring-orange-500/20 transition"
+            />
+          </div>
           <select
             aria-label="Filter categories by status"
             value={status}
             onChange={(event) => setStatus(event.target.value as typeof status)}
+            className="!h-9 !rounded-xl !border-slate-200 !bg-white !px-3 !py-1.5 !text-xs !font-medium !text-slate-700 !shadow-2xs cursor-pointer"
           >
             <option value="all">All statuses</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
           <button
-            className="secondary"
+            className="secondary !h-9 !rounded-xl !border-slate-200 !bg-white !px-3.5 !text-xs !font-medium !text-slate-700 !shadow-2xs hover:!bg-slate-50 cursor-pointer"
             onClick={() => {
               setQuery("");
               setStatus("all");
             }}
+            type="button"
           >
-            <RotateCcw size={16} /> Reset
+            <RotateCcw size={14} /> Reset
           </button>
         </FilterBar>
-        <div className="table-scroll">
-          <table>
-            <thead>
+        <div className="table-scroll overflow-hidden rounded-2xl border border-slate-200/90 shadow-2xs bg-white">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold uppercase tracking-wider">
               <tr>
-                <th>Image</th>
-                <th>Category</th>
-                <th>Slug</th>
-                <th>Description</th>
-                <th>Order</th>
-                <th>Status</th>
-                <th aria-label="Actions" />
+                <th className="px-4 py-3.5 w-16">Image</th>
+                <th className="px-4 py-3.5 min-w-[160px]">Category</th>
+                <th className="px-4 py-3.5 w-36">Slug</th>
+                <th className="px-4 py-3.5">Description</th>
+                <th className="px-4 py-3.5 w-20 text-center">Order</th>
+                <th className="px-4 py-3.5 w-28">Status</th>
+                <th className="px-4 py-3.5 text-right w-24" aria-label="Actions" />
               </tr>
             </thead>
-            <tbody>
-              {filtered.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    {item.image_url ? (
-                      <img src={item.image_url} alt="" loading="lazy" className="h-12 w-12 rounded-lg border border-slate-200 object-cover" />
-                    ) : <span className="text-xs text-slate-400">—</span>}
-                  </td>
-                  <td>
-                    <strong>{item.name}</strong>
-                  </td>
-                  <td>{item.slug}</td>
-                  <td>{item.description || "—"}</td>
-                  <td>{item.sort_order ?? 0}</td>
-                  <td>
-                    <StatusBadge active={Boolean(item.is_active)} />
-                  </td>
-                  <td className="table-actions">
-                    <button
-                      className="icon-button"
-                      aria-label={`Edit ${item.name}`}
-                      title={`Edit ${item.name}`}
-                      onClick={() => onRouteChange("edit", item.id)}
-                    >
-                      <PencilLine size={15} aria-hidden="true" />
-                    </button>
-                    <button
-                      className="icon-button"
-                      aria-label={
-                        updatingId === item.id
-                          ? "Saving status"
-                          : item.is_active
-                            ? `Deactivate ${item.name}`
-                            : `Activate ${item.name}`
-                      }
-                      title={
-                        updatingId === item.id
-                          ? "Saving status"
-                          : item.is_active
-                            ? `Deactivate ${item.name}`
-                            : `Activate ${item.name}`
-                      }
-                      disabled={updatingId === item.id}
-                      onClick={() => void toggleStatus(item)}
-                    >
-                      <Power
-                        size={15}
-                        className={item.is_active ? "power-on" : "power-off"}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+              {filtered.map((item) => {
+                const hasValidDescription =
+                  item.description &&
+                  item.description.trim() !== "" &&
+                  item.description.trim().toUpperCase() !== "N/A" &&
+                  item.description.trim() !== "—";
+
+                return (
+                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex size-11 items-center justify-center rounded-xl border border-slate-200/90 bg-slate-50 p-1 shadow-2xs shrink-0">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt=""
+                            loading="lazy"
+                            className="size-full object-contain"
+                          />
+                        ) : (
+                          <Tag size={16} className="text-slate-300" aria-hidden="true" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <strong className="block font-semibold text-slate-900 text-sm leading-snug">
+                        {item.name}
+                      </strong>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                        {item.slug}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 max-w-md lg:max-w-xl">
+                      {hasValidDescription ? (
+                        <p
+                          className="line-clamp-2 text-xs text-slate-600 leading-relaxed m-0"
+                          title={item.description ?? undefined}
+                        >
+                          {item.description}
+                        </p>
+                      ) : (
+                        <span className="text-xs text-slate-300 italic">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex size-6 items-center justify-center rounded-md bg-slate-100 text-xs font-mono font-medium text-slate-700">
+                        {item.sort_order ?? 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge active={Boolean(item.is_active)} />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        <button
+                          className="icon-button spec-action-btn"
+                          aria-label={`Edit ${item.name}`}
+                          title={`Edit ${item.name}`}
+                          onClick={() => onRouteChange("edit", item.id)}
+                        >
+                          <PencilLine size={14} strokeWidth={2} aria-hidden="true" />
+                        </button>
+                        <button
+                          className="icon-button spec-action-btn"
+                          aria-label={
+                            updatingId === item.id
+                              ? "Saving status"
+                              : item.is_active
+                                ? `Deactivate ${item.name}`
+                                : `Activate ${item.name}`
+                          }
+                          title={
+                            item.is_active
+                              ? `Deactivate ${item.name}`
+                              : `Activate ${item.name}`
+                          }
+                          disabled={updatingId === item.id}
+                          onClick={() => void toggleStatus(item)}
+                        >
+                          <Power
+                            size={14}
+                            strokeWidth={2}
+                            className={item.is_active ? "power-on" : "power-off"}
+                            aria-hidden="true"
+                          />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -46,4 +46,9 @@ class Category extends Model
     {
         return $this->hasMany(CategoryProductListing::class);
     }
+
+    public function specifications(): HasMany
+    {
+        return $this->hasMany(CategorySpecification::class);
+    }
 }

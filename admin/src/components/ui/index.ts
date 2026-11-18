@@ -1,4 +1,4 @@
-﻿export { Breadcrumb, PageActions } from "./Breadcrumb";
+export { Breadcrumb, PageActions } from "./Breadcrumb";
 export { EmptyState, ErrorState, LoadingState } from "./FeedbackStates";
 export { Card, CardHeader, CardContent, CardFooter } from "./Card";
 export { FilterBar } from "./FilterBar";
@@ -20,3 +20,5 @@ export {
   HelperText,
   CodeText,
 } from "./Typography";
+export { toast, Toaster, useToast, type ToastType, type ToastItem, type ToastOptions } from "./Toast";
+

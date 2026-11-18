@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, PencilLine, Plus, RotateCcw } from "lucide-react";
+import { ArrowLeft, PencilLine, Plus, RotateCcw, Search } from "lucide-react";
 import { FilterBar } from "../../components/ui";
 import { HsnCodeForm } from "./HsnCodeForm";
 import { ProductManagementHeader } from "./ProductManagementHeader";
@@ -104,18 +104,27 @@ export function HsnCodesWorkspace({ hsnCodes, notice, onSaved, route, onRouteCha
           {notice}
         </p>
       )}
-      <section className="card">
-        <FilterBar>
-          <input
-            aria-label="Search HSN codes"
-            placeholder="Search title, HSN code, or type"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
+      <section className="card w-full max-w-full">
+        <FilterBar className="flex items-center gap-3">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+            <input
+              aria-label="Search HSN codes"
+              placeholder="Search title, HSN code, or type…"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="!w-full !rounded-xl !border-slate-200 !bg-white !pl-9.5 !pr-3 !py-2 !text-xs !shadow-2xs focus:!border-orange-500 focus:!ring-2 focus:!ring-orange-500/20 transition"
+            />
+          </div>
           <select
             aria-label="Filter HSN codes by type"
             value={type}
             onChange={(event) => setType(event.target.value)}
+            className="!h-9 !rounded-xl !border-slate-200 !bg-white !px-3 !py-1.5 !text-xs !font-medium !text-slate-700 !shadow-2xs cursor-pointer"
           >
             <option value="all">All types</option>
             {types.map((item) => (
@@ -125,53 +134,72 @@ export function HsnCodesWorkspace({ hsnCodes, notice, onSaved, route, onRouteCha
             ))}
           </select>
           <button
-            className="secondary"
+            className="secondary !h-9 !rounded-xl !border-slate-200 !bg-white !px-3.5 !text-xs !font-medium !text-slate-700 !shadow-2xs hover:!bg-slate-50 cursor-pointer"
             onClick={() => {
               setQuery("");
               setType("all");
             }}
+            type="button"
           >
-            <RotateCcw size={16} /> Reset
+            <RotateCcw size={14} /> Reset
           </button>
         </FilterBar>
-        <div className="table-scroll">
-          <table>
-            <thead>
+        <div className="table-scroll overflow-hidden rounded-2xl border border-slate-200/90 shadow-2xs bg-white">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold uppercase tracking-wider">
               <tr>
-                <th>Title</th>
-                <th>HSN Code</th>
-                <th>Type</th>
-                <th>SGST</th>
-                <th>IGST</th>
-                <th aria-label="Actions" />
+                <th className="px-4 py-3.5 min-w-[200px]">Title</th>
+                <th className="px-4 py-3.5 w-36">HSN Code</th>
+                <th className="px-4 py-3.5 w-32">Type</th>
+                <th className="px-4 py-3.5 w-24 text-center">SGST</th>
+                <th className="px-4 py-3.5 w-24 text-center">IGST</th>
+                <th className="px-4 py-3.5 text-right w-20" aria-label="Actions" />
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
               {filtered.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <strong>{item.title}</strong>
+                <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-4 py-3">
+                    <strong className="block font-semibold text-slate-900 text-sm leading-snug">
+                      {item.title}
+                    </strong>
                   </td>
-                  <td>{item.hsn_code || "—"}</td>
-                  <td>{item.type || "—"}</td>
-                  <td>
-                    {item.sgst_tax_multiplier === null
-                      ? "—"
-                      : `${item.sgst_tax_multiplier}%`}
+                  <td className="px-4 py-3">
+                    {item.hsn_code ? (
+                      <span className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60 font-semibold">
+                        {item.hsn_code}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-300 italic">—</span>
+                    )}
                   </td>
-                  <td>
-                    {item.igst_tax_multiplier === null
-                      ? "—"
-                      : `${item.igst_tax_multiplier}%`}
+                  <td className="px-4 py-3">
+                    <span className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/60">
+                      {item.type || "General"}
+                    </span>
                   </td>
-                  <td className="table-actions">
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-mono font-medium text-slate-700">
+                      {item.sgst_tax_multiplier === null
+                        ? "—"
+                        : `${item.sgst_tax_multiplier}%`}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-mono font-medium text-slate-700">
+                      {item.igst_tax_multiplier === null
+                        ? "—"
+                        : `${item.igst_tax_multiplier}%`}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
                     <button
-                      className="icon-button"
+                      className="icon-button spec-action-btn"
                       aria-label={`Edit ${item.title}`}
                       title={`Edit ${item.title}`}
                       onClick={() => onRouteChange("edit", item.id)}
                     >
-                      <PencilLine size={15} aria-hidden="true" />
+                      <PencilLine size={14} strokeWidth={2} aria-hidden="true" />
                     </button>
                   </td>
                 </tr>

@@ -8,12 +8,17 @@ use App\Models\ProductImage;
 use App\Services\RemoveMediaFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class AttachProductImage
 {
     public function execute(Product $product, UploadedFile $image, string $type = 'gallery', int $sortOrder = 0, bool $isPrimary = false): ProductImage
     {
+        if ($type === '360_frame' && $isPrimary) {
+            throw ValidationException::withMessages(['is_primary' => 'A 360° frame cannot be the primary product image.']);
+        }
+
         $path = $image->store('products/'.$product->getKey(), 'public');
         if ($path === false) {
             throw new \RuntimeException('Product image could not be stored.');

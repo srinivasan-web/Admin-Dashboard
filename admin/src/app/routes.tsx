@@ -46,6 +46,7 @@ export const adminViewPaths: Record<AdminView, string> = {
   "testimonials-dashboard": "/testimonials/dashboard",
   "testimonials-all": "/testimonials",
   faqs: "/faqs",
+  "shop-benefits": "/shop-benefits",
   "legal-pages": "/legal-pages",
   banners: "/banners",
 };
